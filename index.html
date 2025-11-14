@@ -2,11 +2,9 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>小小 RPG 示範</title>
+  <title>像素風小小 RPG</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
@@ -16,19 +14,17 @@
       justify-content: center;
       align-items: center;
       padding: 24px;
-      background: radial-gradient(circle at top, #2c3e50 0, #111 55%, #000 100%);
+      background: radial-gradient(circle at top, #37474f 0, #111 60%, #000 100%);
       color: #f5f5f5;
     }
 
     .frame {
-      background: rgba(10, 10, 10, 0.92);
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow:
-        0 18px 40px rgba(0, 0, 0, 0.75),
-        0 0 0 1px rgba(255, 255, 255, 0.02);
-      padding: 18px 20px 20px;
-      max-width: 900px;
+      background: #050608;
+      border-radius: 18px;
+      border: 2px solid #263238;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+      padding: 14px 16px 16px;
+      max-width: 860px;
       width: 100%;
     }
 
@@ -36,13 +32,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+    }
+
+    .title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .game-title {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
     }
 
     .subtitle {
@@ -50,9 +52,14 @@
       opacity: 0.7;
     }
 
+    .hearts {
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+
     .game-container {
       display: flex;
-      gap: 18px;
+      gap: 16px;
     }
 
     @media (max-width: 768px) {
@@ -61,57 +68,21 @@
         align-items: center;
       }
       .frame {
-        padding: 16px;
+        padding: 12px;
       }
     }
 
-    .map-wrapper {
+    .canvas-wrap {
       padding: 10px;
-      border-radius: 16px;
-      background: radial-gradient(circle at top left, #263238, #101418);
+      border-radius: 14px;
+      background: linear-gradient(145deg, #263238, #11161a);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     }
 
-    .map {
-      display: grid;
-      grid-template-columns: repeat(10, 32px);
-      grid-template-rows: repeat(10, 32px);
-      border-radius: 12px;
-      overflow: hidden;
-      background: #1b1b1f;
-    }
-
-    .tile {
-      width: 32px;
-      height: 32px;
-      box-sizing: border-box;
-      border: 1px solid rgba(0, 0, 0, 0.25);
-    }
-
-    .tile.grass {
-      background: linear-gradient(135deg, #1b5e20, #2e7d32);
-    }
-
-    .tile.wall  {
-      background: linear-gradient(135deg, #424242, #212121);
-    }
-
-    .tile.npc {
-      background: linear-gradient(135deg, #1565c0, #0d47a1);
-    }
-
-    .tile.monster {
-      background: linear-gradient(135deg, #b71c1c, #7f0000);
-    }
-
-    .player {
-      background: radial-gradient(circle at 30% 30%, #fff9c4, #ffd600);
-      border-radius: 6px;
-      width: 100%;
-      height: 100%;
-      box-sizing: border-box;
-      border: 2px solid rgba(255, 234, 0, 0.9);
-      box-shadow: 0 0 6px rgba(255, 241, 118, 0.8);
+    canvas {
+      image-rendering: pixelated; /* 讓格子感更明顯 */
+      border-radius: 8px;
+      display: block;
     }
 
     .sidebar {
@@ -122,19 +93,24 @@
     }
 
     .panel {
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 10px 12px;
-      background: linear-gradient(145deg, rgba(22, 22, 26, 0.96), rgba(10, 10, 12, 0.96));
+      background: linear-gradient(145deg, #16171b, #08090c);
       border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.65);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
     }
 
     .panel h2 {
-      font-size: 14px;
+      font-size: 13px;
       margin: 0 0 6px 0;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: #b0bec5;
+    }
+
+    #status {
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     #log {
@@ -145,14 +121,7 @@
       padding-right: 4px;
     }
 
-    #log div {
-      margin-bottom: 3px;
-    }
-
-    #status {
-      font-size: 13px;
-      line-height: 1.6;
-    }
+    #log div { margin-bottom: 3px; }
 
     .hint {
       font-size: 11px;
@@ -160,26 +129,7 @@
       margin-top: 4px;
     }
 
-    .bold {
-      font-weight: 600;
-      color: #fff9c4;
-    }
-
-    .tag-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 4px;
-      flex-wrap: wrap;
-    }
-
-    .tag {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(144, 164, 174, 0.12);
-      border: 1px solid rgba(144, 164, 174, 0.3);
-      color: #eceff1;
-    }
+    .bold { font-weight: 600; color: #fff9c4; }
 
     .footer-hint {
       margin-top: 6px;
@@ -192,20 +142,17 @@
 <body>
   <div class="frame">
     <div class="frame-header">
-      <div>
-        <div class="game-title">GEO 小小 RPG 示範</div>
+      <div class="title-wrap">
+        <div class="game-title">像素風小小 RPG</div>
         <div class="subtitle">使用 W / A / S / D 或 方向鍵移動角色</div>
       </div>
-      <div class="tag-row">
-        <div class="tag">RPG</div>
-        <div class="tag">巡櫃風格</div>
-        <div class="tag">純前端 Demo</div>
-      </div>
+      <div class="hearts" id="hearts"></div>
     </div>
 
     <div class="game-container">
-      <div class="map-wrapper">
-        <div id="map" class="map"></div>
+      <div class="canvas-wrap">
+        <!-- 10 x 10 格，每格 32px -->
+        <canvas id="gameCanvas" width="320" height="320"></canvas>
       </div>
 
       <div class="sidebar">
@@ -216,33 +163,36 @@
         <div class="panel">
           <h2>事件紀錄 Log</h2>
           <div id="log"></div>
-          <div class="hint">試著靠近藍色格子（NPC）與紅色格子（怪物）看看。</div>
+          <div class="hint">靠近藍色格子（NPC）與紅色格子（怪物）試試看。</div>
         </div>
       </div>
     </div>
 
-    <div class="footer-hint">Tip：這只是第一版畫面，之後可以再加入頭像、立繪、地圖素材等。</div>
+    <div class="footer-hint">這是 2D 像素格子版，之後可以再換成真正圖檔素材。</div>
   </div>
 
   <script>
     // 地圖圖例：
-    // 0 = 草地, 1 = 牆, 2 = NPC, 3 = 怪物格
+    // 0 = 草地, 1 = 牆, 2 = NPC, 3 = 怪物格, 4 = 水
+    const tileSize = 32;
     const mapData = [
-      [1,1,1,1,1,1,1,1,1,1],
-      [1,0,0,0,0,0,0,0,3,1],
-      [1,0,0,1,1,0,0,0,0,1],
-      [1,0,0,0,1,0,2,0,0,1],
-      [1,0,1,0,1,0,0,0,0,1],
-      [1,0,1,0,0,0,0,1,0,1],
-      [1,0,0,0,0,1,0,0,0,1],
-      [1,0,0,1,0,0,0,0,0,1],
-      [1,3,0,0,0,0,0,0,0,1],
-      [1,1,1,1,1,1,1,1,1,1]
+      [4,4,4,4,4,4,4,4,4,4],
+      [4,0,0,0,0,0,0,0,3,4],
+      [4,0,0,1,1,0,0,0,0,4],
+      [4,0,0,0,1,0,2,0,0,4],
+      [4,0,1,0,1,0,0,0,0,4],
+      [4,0,1,0,0,0,0,1,0,4],
+      [4,0,0,0,0,1,0,0,0,4],
+      [4,0,0,1,0,0,0,0,0,4],
+      [4,3,0,0,0,0,0,0,0,4],
+      [4,4,4,4,4,4,4,4,4,4]
     ];
 
-    const mapEl = document.getElementById("map");
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
     const logEl = document.getElementById("log");
     const statusEl = document.getElementById("status");
+    const heartsEl = document.getElementById("hearts");
 
     const player = {
       x: 1,
@@ -256,29 +206,77 @@
 
     let npcMet = false;
 
+    function drawTile(x, y, type) {
+      const px = x * tileSize;
+      const py = y * tileSize;
+
+      if (type === 0) {
+        // 草地
+        const grad = ctx.createLinearGradient(px, py, px + tileSize, py + tileSize);
+        grad.addColorStop(0, "#1b5e20");
+        grad.addColorStop(1, "#4caf50");
+        ctx.fillStyle = grad;
+      } else if (type === 1) {
+        // 牆
+        const grad = ctx.createLinearGradient(px, py, px + tileSize, py + tileSize);
+        grad.addColorStop(0, "#424242");
+        grad.addColorStop(1, "#212121");
+        ctx.fillStyle = grad;
+      } else if (type === 2) {
+        // NPC 地板
+        const grad = ctx.createLinearGradient(px, py, px + tileSize, py + tileSize);
+        grad.addColorStop(0, "#0d47a1");
+        grad.addColorStop(1, "#1976d2");
+        ctx.fillStyle = grad;
+      } else if (type === 3) {
+        // 怪物地板
+        const grad = ctx.createLinearGradient(px, py, px + tileSize, py + tileSize);
+        grad.addColorStop(0, "#b71c1c");
+        grad.addColorStop(1, "#7f0000");
+        ctx.fillStyle = grad;
+      } else if (type === 4) {
+        // 水
+        const grad = ctx.createLinearGradient(px, py, px, py + tileSize);
+        grad.addColorStop(0, "#01579b");
+        grad.addColorStop(1, "#0288d1");
+        ctx.fillStyle = grad;
+      }
+
+      ctx.fillRect(px, py, tileSize, tileSize);
+
+      // 邊框讓像素感更明顯
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 0.5, py + 0.5, tileSize - 1, tileSize - 1);
+    }
+
     function renderMap() {
-      mapEl.innerHTML = "";
       for (let y = 0; y < mapData.length; y++) {
         for (let x = 0; x < mapData[0].length; x++) {
-          const tileType = mapData[y][x];
-          const tile = document.createElement("div");
-          tile.classList.add("tile");
-
-          if (tileType === 0) tile.classList.add("grass");
-          if (tileType === 1) tile.classList.add("wall");
-          if (tileType === 2) tile.classList.add("npc");
-          if (tileType === 3) tile.classList.add("monster");
-
-          // 玩家位置
-          if (player.x === x && player.y === y) {
-            const p = document.createElement("div");
-            p.classList.add("player");
-            tile.appendChild(p);
-          }
-
-          mapEl.appendChild(tile);
+          drawTile(x, y, mapData[y][x]);
         }
       }
+
+      // 畫玩家（小人頭）
+      const px = player.x * tileSize + tileSize / 2;
+      const py = player.y * tileSize + tileSize / 2;
+
+      // 身體
+      ctx.fillStyle = "#1565c0";
+      ctx.beginPath();
+      ctx.roundRect(px - 8, py - 4, 16, 16, 4);
+      ctx.fill();
+
+      // 頭
+      ctx.fillStyle = "#ffe082";
+      ctx.beginPath();
+      ctx.arc(px, py - 10, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 眼睛
+      ctx.fillStyle = "#263238";
+      ctx.fillRect(px - 4, py - 12, 2, 2);
+      ctx.fillRect(px + 2, py - 12, 2, 2);
     }
 
     function updateStatus() {
@@ -288,6 +286,14 @@
         攻擊力：<span class="bold">${player.attack}</span><br>
         經驗值：<span class="bold">${player.exp}</span>
       `;
+
+      const heartsTotal = Math.ceil(player.maxHp / 5);
+      const heartsFilled = Math.ceil(player.hp / 5);
+      let heartsStr = "";
+      for (let i = 0; i < heartsTotal; i++) {
+        heartsStr += i < heartsFilled ? "❤️" : "🤍";
+      }
+      heartsEl.textContent = heartsStr;
     }
 
     function addLog(text) {
@@ -300,7 +306,10 @@
     function canMoveTo(x, y) {
       if (y < 0 || y >= mapData.length) return false;
       if (x < 0 || x >= mapData[0].length) return false;
-      return mapData[y][x] !== 1; // 不是牆就可以走
+      const tile = mapData[y][x];
+      // 水和牆不能走
+      if (tile === 1 || tile === 4) return false;
+      return true;
     }
 
     function movePlayer(dx, dy) {
@@ -328,11 +337,11 @@
 
     function triggerNpc() {
       if (!npcMet) {
-        addLog("神秘 NPC：『歡迎來到 GEO 王國，巡櫃勇者。』");
-        addLog("神秘 NPC：『多觀察、多思考，數據會說話。』");
+        addLog("神秘 NPC：『歡迎來到像素小島，巡櫃勇者。』");
+        addLog("神秘 NPC：『現場看到的，比報表更誠實喔。』");
         npcMet = true;
       } else {
-        addLog("NPC：『記得善用你看到的一切，做出更好的決策。』");
+        addLog("NPC：『今天的動線和人潮，有沒有什麼新發現？』");
       }
     }
 
@@ -341,7 +350,6 @@
       let monsterHp = 10;
       const monsterAttack = 3;
 
-      // 簡單回合制（自動結算）
       while (monsterHp > 0 && player.hp > 0) {
         monsterHp -= player.attack;
         addLog(`你對怪物造成 ${player.attack} 點傷害。怪物 HP：${Math.max(monsterHp, 0)}`);
@@ -352,11 +360,10 @@
       }
 
       if (player.hp <= 0) {
-        addLog("你倒下了……遊戲結束。重新整理頁面可以再來一次。");
+        addLog("你倒下了……重新整理頁面可以再來一次。");
       } else {
         addLog("你打倒了怪物！獲得 5 點經驗值。");
         player.exp += 5;
-        // 簡單升級機制
         if (player.exp >= 10 && player.level === 1) {
           player.level = 2;
           player.maxHp += 5;
@@ -380,7 +387,7 @@
     // 初始化
     renderMap();
     updateStatus();
-    addLog("歡迎來到小小 RPG 示範世界！");
+    addLog("歡迎來到像素風小小 RPG 世界！");
     addLog("使用 W / A / S / D 或方向鍵移動角色。");
 
     window.addEventListener("keydown", handleKey);
