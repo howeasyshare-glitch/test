@@ -236,39 +236,38 @@
       );
     });
 
-    function searchNearbyRestaurants(radiusKm) {
-      if (!userLocation) return;
-      const service = new google.maps.places.PlacesService(
-        document.createElement("div")
-      );
-      const request = {
-        location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
-        radius: radiusKm * 1000,
-        type: "restaurant",
-      };
+function searchNearbyRestaurants(radiusKm) {
+  if (!userLocation) return;
 
-      allPlaces = [];
-      categoryMap = {};
-      categoryList.innerHTML = "";
-      startRandomBtn.disabled = true;
-      reshuffleBtn.disabled = true;
+  const service = new google.maps.places.PlacesService(
+    document.createElement("div")
+  );
+  const request = {
+    location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
+    radius: radiusKm * 1000,
+    type: "restaurant",
+  };
 
-      service.nearbySearch(request, (results, status, pagination) => {
-        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-          statusMsg.textContent = "搜尋餐廳時發生錯誤，或是這一帶餐廳太少。";
-          return;
-        }
-        allPlaces = allPlaces.concat(results);
+  allPlaces = [];
+  categoryMap = {};
+  categoryList.innerHTML = "";
+  startRandomBtn.disabled = true;
+  reshuffleBtn.disabled = true;
 
-        if (pagination && pagination.hasNextPage) {
-          // Google 有分頁限制，這裡簡單示範再抓一次就好
-          pagination.nextPage();
-        } else {
-          statusMsg.textContent = `找到 ${allPlaces.length} 家餐廳，請先選擇你有興趣的類型。`;
-          buildCategoriesFromPlaces();
-        }
-      });
+  service.nearbySearch(request, (results, status) => {
+    console.log("nearbySearch status:", status, results);
+
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+      statusMsg.textContent = "搜尋餐廳時發生錯誤，或是這一帶餐廳太少。";
+      return;
     }
+
+    allPlaces = results; // 先用第一頁結果就好（約 20 家）
+    statusMsg.textContent = `找到 ${allPlaces.length} 家餐廳，請先選擇你有興趣的類型。`;
+    buildCategoriesFromPlaces();
+  });
+}
+
 
     // 從 Places 的 types 萃出分類
     function buildCategoriesFromPlaces() {
