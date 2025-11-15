@@ -2,702 +2,439 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>像素風小小 RPG HUD 版</title>
+  <title>今天吃什麼？隨機餐廳幫你決定</title>
   <style>
     * { box-sizing: border-box; }
-
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
-      min-height: 100vh;
       margin: 0;
+      padding: 24px;
+      background: radial-gradient(circle at top, #f5f5f5 0, #e0f2f1 40%, #b2dfdb 100%);
       display: flex;
       justify-content: center;
-      align-items: center;
-      padding: 24px;
-      background: radial-gradient(circle at top, #37474f 0, #111 60%, #000 100%);
-      color: #f5f5f5;
     }
-
-    .frame {
-      background: #050608;
-      border-radius: 18px;
-      border: 2px solid #263238;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
-      padding: 14px 16px 16px;
-      max-width: 980px;
+    .app {
+      max-width: 960px;
       width: 100%;
+      background: #ffffffee;
+      border-radius: 18px;
+      padding: 18px 20px 22px;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.1);
+      border: 1px solid #e0f2f1;
     }
-
-    .frame-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
+    h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
     }
-
-    .title-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .game-title {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-    }
-
     .subtitle {
-      font-size: 12px;
-      opacity: 0.7;
+      font-size: 13px;
+      color: #607d8b;
+      margin-bottom: 14px;
     }
-
-    .hearts {
-      font-size: 18px;
-      letter-spacing: 2px;
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
     }
-
-    .game-layout {
+    label {
+      font-size: 14px;
+    }
+    input[type="number"] {
+      width: 80px;
+      padding: 6px 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #b0bec5;
+    }
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      background: #00bfa5;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(0,191,165,0.4);
+      transition: transform 0.05s ease-out, box-shadow 0.05s ease-out;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0,191,165,0.4);
+    }
+    button.secondary {
+      background: #eceff1;
+      color: #455a64;
+      box-shadow: none;
+      border: 1px solid #cfd8dc;
+    }
+    #statusMsg {
+      font-size: 13px;
+      color: #455a64;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+    .layout {
       display: grid;
-      grid-template-columns: auto 260px;
-      grid-template-rows: auto auto;
-      grid-template-areas:
-        "playfield side"
-        "skillbar side";
-      gap: 10px 14px;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 14px;
     }
-
-    @media (max-width: 900px) {
-      .game-layout {
+    @media (max-width: 800px) {
+      .layout {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        grid-template-areas:
-          "playfield"
-          "skillbar"
-          "side";
       }
     }
-
-    .playfield {
-      grid-area: playfield;
-      position: relative;
-      padding: 10px;
-      border-radius: 14px;
-      background: linear-gradient(145deg, #263238, #11161a);
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-    }
-
-    canvas {
-      image-rendering: pixelated;
-      border-radius: 8px;
-      display: block;
-    }
-
-    #gameCanvas {
-      border: 1px solid rgba(0,0,0,0.6);
-    }
-
-    .hud-overlay {
-      pointer-events: none;
-    }
-
-    .mini-map-panel {
-      position: absolute;
-      right: 12px;
-      bottom: 70px;
-      width: 110px;
-      padding: 6px 8px;
-      border-radius: 12px;
-      background: rgba(5, 5, 7, 0.9);
-      border: 1px solid rgba(144, 164, 174, 0.7);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.8);
-      pointer-events: auto;
-    }
-
-    .mini-map-title {
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #b0bec5;
-      margin-bottom: 3px;
-    }
-
-    #miniMap {
-      display: block;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .quest-panel {
-      position: absolute;
-      left: 12px;
-      bottom: 70px;
-      width: 150px;
-      padding: 6px 8px;
-      border-radius: 12px;
-      background: rgba(5, 5, 7, 0.9);
-      border: 1px solid rgba(174, 213, 129, 0.7);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.8);
-      pointer-events: auto;
-      font-size: 11px;
-    }
-
-    .quest-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: #c5e1a5;
-      margin-bottom: 2px;
-    }
-
-    .quest-text {
-      font-size: 11px;
-      line-height: 1.4;
-    }
-
-    .skill-bar {
-      grid-area: skillbar;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 6px 4px 0;
-    }
-
-    .skill-btn {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 2px solid rgba(255, 255, 255, 0.18);
-      background: radial-gradient(circle at 30% 20%, #ffffff33, #1e88e5aa);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow:
-        0 4px 10px rgba(0,0,0,0.7),
-        0 0 0 1px rgba(0,0,0,0.7);
-      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
-      font-size: 22px;
-      user-select: none;
-    }
-
-    .skill-btn:active {
-      transform: translateY(2px) scale(0.96);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.7);
-    }
-
-    .skill-label {
-      font-size: 10px;
-      margin-top: 2px;
-      text-align: center;
-      opacity: 0.8;
-    }
-
-    .sidebar {
-      grid-area: side;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
     .panel {
       border-radius: 12px;
+      border: 1px solid #eceff1;
       padding: 10px 12px;
-      background: linear-gradient(145deg, #16171b, #08090c);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+      background: #fafafa;
     }
-
     .panel h2 {
-      font-size: 13px;
-      margin: 0 0 6px 0;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #b0bec5;
+      font-size: 14px;
+      margin: 0 0 6px;
+      color: #546e7a;
     }
-
-    #status {
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    #log {
-      height: 190px;
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      max-height: 170px;
       overflow-y: auto;
       font-size: 13px;
-      line-height: 1.4;
-      padding-right: 4px;
     }
-
-    #log div { margin-bottom: 3px; }
-
-    .hint {
-      font-size: 11px;
-      color: #90a4ae;
-      margin-top: 4px;
-    }
-
-    .bold { font-weight: 600; color: #fff9c4; }
-
-    .footer-hint {
-      margin-top: 6px;
-      font-size: 11px;
-      opacity: 0.7;
-      text-align: right;
-    }
-
-    /* 對話框 */
-    .dialog-box {
-      position: absolute;
-      left: 50%;
-      bottom: 6px;
-      transform: translateX(-50%);
-      width: 90%;
-      max-width: 520px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: rgba(12, 12, 16, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 10px 24px rgba(0,0,0,0.9);
-      display: none;
-    }
-
-    .dialog-inner {
-      display: grid;
-      grid-template-columns: 44px auto;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .dialog-portrait {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      background: radial-gradient(circle at 30% 20%, #ffffff33, #1565c0);
+    .cat-item {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 24px;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #eceff1;
     }
-
-    .dialog-content {
-      font-size: 13px;
+    .random-controls {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .restaurant-card {
+      font-size: 14px;
       line-height: 1.5;
     }
-
-    .dialog-name {
-      font-size: 11px;
-      color: #b0bec5;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .restaurant-name {
+      font-size: 18px;
+      font-weight: 600;
       margin-bottom: 2px;
     }
-
-    .dialog-text {
-      font-size: 13px;
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 4px 0 8px;
+      font-size: 12px;
     }
-
-    .dialog-hint {
-      margin-top: 4px;
-      font-size: 11px;
-      color: #90a4ae;
-      text-align: right;
+    .badge {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e0f2f1;
+      color: #00695c;
+    }
+    a {
+      color: #00796b;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .small {
+      font-size: 12px;
+      color: #78909c;
+      margin-top: 6px;
     }
   </style>
 </head>
 <body>
-  <div class="frame">
-    <div class="frame-header">
-      <div class="title-wrap">
-        <div class="game-title">像素風小小 RPG</div>
-        <div class="subtitle">使用 W / A / S / D 或 方向鍵移動角色，空白鍵或 Enter 繼續對話</div>
-      </div>
-      <div class="hearts" id="hearts"></div>
+  <div class="app">
+    <h1>今天吃什麼？讓我幫你抽一家 🍽️</h1>
+    <div class="subtitle">
+      1. 偵測你的位置 → 2. 搜尋附近餐廳 → 3. 選分類 → 4. 幫你抽籤
     </div>
 
-    <div class="game-layout">
-      <!-- 主畫面 + HUD -->
-      <div class="playfield">
-        <canvas id="gameCanvas" width="320" height="320"></canvas>
+    <div class="controls">
+      <label>搜尋半徑
+        <input id="radiusInput" type="number" value="3" min="1" max="10" /> 公里
+      </label>
+      <button id="locateBtn">📍 偵測我的位置並搜尋餐廳</button>
+      <button id="reshuffleBtn" class="secondary" disabled>🎲 再抽一次</button>
+    </div>
+    <div id="statusMsg"></div>
 
-        <div class="hud-overlay">
-          <div class="mini-map-panel">
-            <div class="mini-map-title">MINI MAP</div>
-            <canvas id="miniMap" width="80" height="80"></canvas>
-          </div>
-
-          <div class="quest-panel">
-            <div class="quest-title">今日任務</div>
-            <div class="quest-text">
-              ① 拜訪藍色 NPC<br>
-              ② 打倒紅色怪物 1 隻<br>
-              ③ 多觀察動線與人潮
-            </div>
-          </div>
-
-          <div class="dialog-box" id="dialogBox">
-            <div class="dialog-inner">
-              <div class="dialog-portrait" id="dialogPortrait">🧙‍♂️</div>
-              <div class="dialog-content">
-                <div class="dialog-name" id="dialogName">NPC</div>
-                <div class="dialog-text" id="dialogText"></div>
-              </div>
-            </div>
-            <div class="dialog-hint">空白鍵 / Enter 繼續</div>
-          </div>
+    <div class="layout">
+      <div class="panel">
+        <h2>選擇你有興趣的餐廳類型</h2>
+        <div id="categoryList" class="categories"></div>
+        <div class="random-controls">
+          <button id="startRandomBtn" disabled>開始抽籤 🎯</button>
+          <span style="font-size:12px;color:#78909c;">（可勾選 1 種以上類別）</span>
         </div>
       </div>
 
-      <!-- 技能列 -->
-      <div class="skill-bar">
-        <div>
-          <div class="skill-btn" data-skill="heal">✨</div>
-          <div class="skill-label">回復</div>
-        </div>
-        <div>
-          <div class="skill-btn" data-skill="buff">🛡️</div>
-          <div class="skill-label">防禦</div>
-        </div>
-        <div>
-          <div class="skill-btn" data-skill="scan">📊</div>
-          <div class="skill-label">偵測</div>
-        </div>
-      </div>
-
-      <!-- 側邊欄 -->
-      <div class="sidebar">
-        <div class="panel">
-          <h2>狀態 Status</h2>
-          <div id="status"></div>
-        </div>
-        <div class="panel">
-          <h2>事件紀錄 Log</h2>
-          <div id="log"></div>
-          <div class="hint">提示：對話時可按空白鍵 / Enter 繼續。</div>
+      <div class="panel">
+        <h2>抽到的餐廳</h2>
+        <div id="restaurantResult" class="restaurant-card">
+          還沒有開始抽籤，先搜尋附近餐廳再來玩吧！
         </div>
       </div>
     </div>
 
-    <div class="footer-hint">這只是 HUD 原型，之後可以替換成真實角色立繪、品牌素材等。</div>
+    <div class="small">
+      小提醒：需要 HTTPS 網站 + 自己的 Google Maps API Key，地點資料由 Google 提供。
+    </div>
   </div>
 
+  <!-- 請把 YOUR_GOOGLE_MAPS_API_KEY 換成你自己的 key -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&libraries=places"></script>
   <script>
-    // 地圖圖例：
-    // 0 = 草地, 1 = 牆, 2 = NPC, 3 = 怪物格, 4 = 水
-    const tileSize = 32;
-    const mapData = [
-      [4,4,4,4,4,4,4,4,4,4],
-      [4,0,0,0,0,0,0,0,3,4],
-      [4,0,0,1,1,0,0,0,0,4],
-      [4,0,0,0,1,0,2,0,0,4],
-      [4,0,1,0,1,0,0,0,0,4],
-      [4,0,1,0,0,0,0,1,0,4],
-      [4,0,0,0,0,1,0,0,0,4],
-      [4,0,0,1,0,0,0,0,0,4],
-      [4,3,0,0,0,0,0,0,0,4],
-      [4,4,4,4,4,4,4,4,4,4]
-    ];
+    let userLocation = null;
+    let allPlaces = [];
+    let categoryMap = {}; // { categoryName: [place, place...] }
 
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const miniCanvas = document.getElementById("miniMap");
-    const miniCtx = miniCanvas.getContext("2d");
+    const radiusInput = document.getElementById("radiusInput");
+    const locateBtn = document.getElementById("locateBtn");
+    const reshuffleBtn = document.getElementById("reshuffleBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    const categoryList = document.getElementById("categoryList");
+    const startRandomBtn = document.getElementById("startRandomBtn");
+    const restaurantResult = document.getElementById("restaurantResult");
 
-    const logEl = document.getElementById("log");
-    const statusEl = document.getElementById("status");
-    const heartsEl = document.getElementById("hearts");
-
-    const dialogBox = document.getElementById("dialogBox");
-    const dialogNameEl = document.getElementById("dialogName");
-    const dialogTextEl = document.getElementById("dialogText");
-    const dialogPortraitEl = document.getElementById("dialogPortrait");
-
-    const player = {
-      x: 1,
-      y: 1,
-      hp: 20,
-      maxHp: 20,
-      attack: 5,
-      level: 1,
-      exp: 0
-    };
-
-    let npcMet = false;
-
-    // 對話系統
-    let dialogQueue = [];
-    let dialogVisible = false;
-
-    function showDialog(lines, name = "NPC", portrait = "🧙‍♂️") {
-      dialogQueue = Array.isArray(lines) ? [...lines] : [String(lines)];
-      if (dialogQueue.length === 0) return;
-      dialogVisible = true;
-      dialogNameEl.textContent = name;
-      dialogPortraitEl.textContent = portrait;
-      dialogBox.style.display = "block";
-      dialogTextEl.textContent = dialogQueue.shift();
-    }
-
-    function advanceDialog() {
-      if (!dialogVisible) return;
-      if (dialogQueue.length > 0) {
-        dialogTextEl.textContent = dialogQueue.shift();
-      } else {
-        dialogVisible = false;
-        dialogBox.style.display = "none";
-      }
-    }
-
-    // 地圖繪製
-    function drawTile(ctxTarget, x, y, type, size) {
-      const px = x * size;
-      const py = y * size;
-
-      let grad;
-      if (type === 0) {
-        grad = ctxTarget.createLinearGradient(px, py, px + size, py + size);
-        grad.addColorStop(0, "#1b5e20");
-        grad.addColorStop(1, "#4caf50");
-      } else if (type === 1) {
-        grad = ctxTarget.createLinearGradient(px, py, px + size, py + size);
-        grad.addColorStop(0, "#424242");
-        grad.addColorStop(1, "#212121");
-      } else if (type === 2) {
-        grad = ctxTarget.createLinearGradient(px, py, px + size, py + size);
-        grad.addColorStop(0, "#0d47a1");
-        grad.addColorStop(1, "#1976d2");
-      } else if (type === 3) {
-        grad = ctxTarget.createLinearGradient(px, py, px + size, py + size);
-        grad.addColorStop(0, "#b71c1c");
-        grad.addColorStop(1, "#7f0000");
-      } else if (type === 4) {
-        grad = ctxTarget.createLinearGradient(px, py, px, py + size);
-        grad.addColorStop(0, "#01579b");
-        grad.addColorStop(1, "#0288d1");
-      }
-      ctxTarget.fillStyle = grad;
-      ctxTarget.fillRect(px, py, size, size);
-
-      ctxTarget.strokeStyle = "rgba(0,0,0,0.45)";
-      ctxTarget.lineWidth = 1;
-      ctxTarget.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
-    }
-
-    function renderMap() {
-      // 主畫面
-      for (let y = 0; y < mapData.length; y++) {
-        for (let x = 0; x < mapData[0].length; x++) {
-          drawTile(ctx, x, y, mapData[y][x], tileSize);
-        }
-      }
-
-      // 玩家
-      const px = player.x * tileSize + tileSize / 2;
-      const py = player.y * tileSize + tileSize / 2;
-
-      // 身體
-      ctx.fillStyle = "#1565c0";
-      ctx.beginPath();
-      ctx.roundRect(px - 8, py - 4, 16, 16, 4);
-      ctx.fill();
-
-      // 頭
-      ctx.fillStyle = "#ffe082";
-      ctx.beginPath();
-      ctx.arc(px, py - 10, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 眼睛
-      ctx.fillStyle = "#263238";
-      ctx.fillRect(px - 4, py - 12, 2, 2);
-      ctx.fillRect(px + 2, py - 12, 2, 2);
-
-      renderMiniMap();
-    }
-
-    function renderMiniMap() {
-      const rows = mapData.length;
-      const cols = mapData[0].length;
-      const size = miniCanvas.width / cols;
-
-      miniCtx.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
-
-      for (let y = 0; y < rows; y++) {
-        for (let x = 0; x < cols; x++) {
-          const t = mapData[y][x];
-          let color = "#263238";
-          if (t === 0) color = "#4caf50";
-          else if (t === 1) color = "#424242";
-          else if (t === 2) color = "#2196f3";
-          else if (t === 3) color = "#ef5350";
-          else if (t === 4) color = "#0277bd";
-
-          miniCtx.fillStyle = color;
-          miniCtx.fillRect(x * size, y * size, size, size);
-        }
-      }
-
-      // 玩家位置
-      miniCtx.fillStyle = "#ffeb3b";
-      const px = player.x * size + size / 2;
-      const py = player.y * size + size / 2;
-      miniCtx.beginPath();
-      miniCtx.moveTo(px, py - 4);
-      miniCtx.lineTo(px - 4, py + 4);
-      miniCtx.lineTo(px + 4, py + 4);
-      miniCtx.closePath();
-      miniCtx.fill();
-    }
-
-    function updateStatus() {
-      statusEl.innerHTML = `
-        等級：<span class="bold">${player.level}</span><br>
-        HP：<span class="bold">${player.hp}</span> / ${player.maxHp}<br>
-        攻擊力：<span class="bold">${player.attack}</span><br>
-        經驗值：<span class="bold">${player.exp}</span>
-      `;
-
-      const heartsTotal = Math.ceil(player.maxHp / 5);
-      const heartsFilled = Math.ceil(player.hp / 5);
-      let heartsStr = "";
-      for (let i = 0; i < heartsTotal; i++) {
-        heartsStr += i < heartsFilled ? "❤️" : "🤍";
-      }
-      heartsEl.textContent = heartsStr;
-    }
-
-    function addLog(text) {
-      const line = document.createElement("div");
-      line.textContent = text;
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    function canMoveTo(x, y) {
-      if (y < 0 || y >= mapData.length) return false;
-      if (x < 0 || x >= mapData[0].length) return false;
-      const tile = mapData[y][x];
-      if (tile === 1 || tile === 4) return false; // 牆 & 水不能走
-      return true;
-    }
-
-    function movePlayer(dx, dy) {
-      if (dialogVisible) return; // 對話中不能移動
-
-      const newX = player.x + dx;
-      const newY = player.y + dy;
-
-      if (!canMoveTo(newX, newY)) {
-        addLog("那邊走不過去。");
+    locateBtn.addEventListener("click", () => {
+      const radiusKm = Number(radiusInput.value) || 3;
+      if (!navigator.geolocation) {
+        statusMsg.textContent = "你的瀏覽器不支援定位功能。";
         return;
       }
-
-      player.x = newX;
-      player.y = newY;
-
-      const tileType = mapData[newY][newX];
-      if (tileType === 2) {
-        triggerNpc();
-      } else if (tileType === 3) {
-        triggerMonster();
-      }
-
-      renderMap();
-      updateStatus();
-    }
-
-    function triggerNpc() {
-      if (!npcMet) {
-        const lines = [
-          "歡迎來到像素小島，巡櫃勇者。",
-          "多看、多問、多記錄，現場看到的一切，都是最真實的數據。"
-        ];
-        showDialog(lines, "神秘 NPC", "🧙‍♂️");
-        addLog("你與神秘 NPC 展開對話。");
-        npcMet = true;
-      } else {
-        const lines = [
-          "今天的動線、人潮、客人反應，有沒有什麼新發現？",
-          "記得把觀察到的，帶回去好好整理。"
-        ];
-        showDialog(lines, "神秘 NPC", "🧙‍♂️");
-        addLog("NPC 又給了你一些建議。");
-      }
-    }
-
-    function triggerMonster() {
-      addLog("你遇到了一隻怪物！開始戰鬥！");
-      showDialog("小心！這隻怪物看起來有點兇。", "系統", "👾");
-
-      let monsterHp = 10;
-      const monsterAttack = 3;
-
-      while (monsterHp > 0 && player.hp > 0) {
-        monsterHp -= player.attack;
-        addLog(`你對怪物造成 ${player.attack} 點傷害。怪物 HP：${Math.max(monsterHp, 0)}`);
-        if (monsterHp <= 0) break;
-
-        player.hp -= monsterAttack;
-        addLog(`怪物攻擊了你，你受到 ${monsterAttack} 點傷害。你的 HP：${Math.max(player.hp, 0)}`);
-      }
-
-      if (player.hp <= 0) {
-        addLog("你倒下了……重新整理頁面可以再來一次。");
-      } else {
-        addLog("你打倒了怪物！獲得 5 點經驗值。");
-        player.exp += 5;
-        if (player.exp >= 10 && player.level === 1) {
-          player.level = 2;
-          player.maxHp += 5;
-          player.hp = player.maxHp;
-          player.attack += 2;
-          addLog("你升級了！等級 2，攻擊與 HP 提升。");
+      statusMsg.textContent = "正在取得你的位置…";
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          };
+          statusMsg.textContent = `已取得位置，正在搜尋 ${radiusKm} 公里內餐廳…`;
+          searchNearbyRestaurants(radiusKm);
+        },
+        (err) => {
+          console.error(err);
+          statusMsg.textContent = "無法取得位置，請確認瀏覽器有開啟定位權限。";
         }
-        mapData[player.y][player.x] = 0; // 怪物格清空
-      }
-    }
-
-    function handleKey(e) {
-      const key = e.key.toLowerCase();
-      if (dialogVisible && (key === " " || key === "enter")) {
-        e.preventDefault();
-        advanceDialog();
-        return;
-      }
-
-      if (dialogVisible) return;
-
-      if (key === "arrowup" || key === "w") movePlayer(0, -1);
-      else if (key === "arrowdown" || key === "s") movePlayer(0, 1);
-      else if (key === "arrowleft" || key === "a") movePlayer(-1, 0);
-      else if (key === "arrowright" || key === "d") movePlayer(1, 0);
-    }
-
-    // 技能按鈕（先做成小效果）
-    document.querySelectorAll(".skill-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const skill = btn.dataset.skill;
-        if (skill === "heal") {
-          const heal = 5;
-          player.hp = Math.min(player.maxHp, player.hp + heal);
-          addLog(`你使用了回復技能，恢復 ${heal} 點 HP。`);
-        } else if (skill === "buff") {
-          addLog("你集中精神，感覺防禦力稍微提升了一點。（示意用）");
-        } else if (skill === "scan") {
-          addLog("你觀察了周圍環境：草地、牆、水域與神秘的紅色格子。");
-        }
-        updateStatus();
-        renderMap();
-      });
+      );
     });
 
-    // 初始化
-    renderMap();
-    updateStatus();
-    addLog("歡迎來到像素風小小 RPG 世界！");
-    addLog("靠近藍色格子觸發 NPC 對話，靠近紅色格子觸發戰鬥。");
-    addLog("對話時可按空白鍵或 Enter 繼續。");
+    function searchNearbyRestaurants(radiusKm) {
+      if (!userLocation) return;
+      const service = new google.maps.places.PlacesService(
+        document.createElement("div")
+      );
+      const request = {
+        location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
+        radius: radiusKm * 1000,
+        type: "restaurant",
+      };
 
-    window.addEventListener("keydown", handleKey);
+      allPlaces = [];
+      categoryMap = {};
+      categoryList.innerHTML = "";
+      startRandomBtn.disabled = true;
+      reshuffleBtn.disabled = true;
+
+      service.nearbySearch(request, (results, status, pagination) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+          statusMsg.textContent = "搜尋餐廳時發生錯誤，或是這一帶餐廳太少。";
+          return;
+        }
+        allPlaces = allPlaces.concat(results);
+
+        if (pagination && pagination.hasNextPage) {
+          // Google 有分頁限制，這裡簡單示範再抓一次就好
+          pagination.nextPage();
+        } else {
+          statusMsg.textContent = `找到 ${allPlaces.length} 家餐廳，請先選擇你有興趣的類型。`;
+          buildCategoriesFromPlaces();
+        }
+      });
+    }
+
+    // 從 Places 的 types 萃出分類
+    function buildCategoriesFromPlaces() {
+      const ignoreTypes = new Set([
+        "restaurant",
+        "food",
+        "point_of_interest",
+        "establishment"
+      ]);
+
+      const tempMap = {};
+
+      allPlaces.forEach((place) => {
+        if (!place.types) return;
+        place.types.forEach((t) => {
+          if (ignoreTypes.has(t)) return;
+          const label = mapTypeToLabel(t);
+          if (!tempMap[label]) tempMap[label] = [];
+          tempMap[label].push(place);
+        });
+      });
+
+      // 如果某些店沒有任何特殊 type，就放到「其他」
+      const otherLabel = "其他";
+      allPlaces.forEach((place) => {
+        const hasCategory = Object.values(tempMap).some((arr) =>
+          arr.includes(place)
+        );
+        if (!hasCategory) {
+          if (!tempMap[otherLabel]) tempMap[otherLabel] = [];
+          tempMap[otherLabel].push(place);
+        }
+      });
+
+      categoryMap = tempMap;
+      renderCategoryCheckboxes();
+    }
+
+    function mapTypeToLabel(type) {
+      // 可以自己再優化 mapping 規則
+      const map = {
+        cafe: "咖啡 / 輕食",
+        bar: "酒吧 / 小酌",
+        bakery: "麵包 / 甜點",
+        meal_takeaway: "外帶 / 速食",
+        meal_delivery: "外送為主",
+      };
+      if (map[type]) return map[type];
+      // 沒特別 mapping 的，直接顯示英文 type
+      return type;
+    }
+
+    function renderCategoryCheckboxes() {
+      categoryList.innerHTML = "";
+      const entries = Object.entries(categoryMap);
+      if (entries.length === 0) {
+        categoryList.textContent = "分類資訊不足，但你仍然可以直接抽全部餐廳。";
+        startRandomBtn.disabled = false;
+        reshuffleBtn.disabled = false;
+        return;
+      }
+      entries.forEach(([label, places]) => {
+        const id = "cat-" + label.replace(/\s+/g, "-");
+        const wrapper = document.createElement("label");
+        wrapper.className = "cat-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = label;
+        checkbox.id = id;
+
+        const span = document.createElement("span");
+        span.textContent = `${label} (${places.length})`;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(span);
+        categoryList.appendChild(wrapper);
+      });
+
+      startRandomBtn.disabled = false;
+      reshuffleBtn.disabled = false;
+    }
+
+    function getFilteredPlacesBySelectedCategories() {
+      const checked = Array.from(
+        categoryList.querySelectorAll("input[type=checkbox]:checked")
+      ).map((c) => c.value);
+
+      if (checked.length === 0) {
+        // 沒選分類就用全部
+        return allPlaces;
+      }
+
+      const set = new Set();
+      checked.forEach((label) => {
+        const arr = categoryMap[label] || [];
+        arr.forEach((p) => set.add(p));
+      });
+      return Array.from(set);
+    }
+
+    function pickRandomRestaurant() {
+      if (allPlaces.length === 0) {
+        statusMsg.textContent = "還沒搜尋餐廳喔，先按「偵測我的位置並搜尋餐廳」。";
+        return;
+      }
+      const candidates = getFilteredPlacesBySelectedCategories();
+      if (candidates.length === 0) {
+        restaurantResult.textContent = "這些分類底下沒有餐廳，換幾個分類試試看？";
+        return;
+      }
+      const index = Math.floor(Math.random() * candidates.length);
+      const place = candidates[index];
+      renderRestaurant(place);
+    }
+
+    function renderRestaurant(place) {
+      const name = place.name || "未命名餐廳";
+      const addr = place.vicinity || place.formatted_address || "地址資訊不足";
+      const rating = place.rating;
+      const total = place.user_ratings_total;
+      const phone = place.formatted_phone_number; // 這個通常要用 details API 才會有
+      const website = place.website;
+      const lat = place.geometry?.location?.lat();
+      const lng = place.geometry?.location?.lng();
+
+      const mapsLink = lat && lng
+        ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+        : null;
+
+      restaurantResult.innerHTML = `
+        <div class="restaurant-name">${name}</div>
+        <div>${addr}</div>
+        <div class="badge-row">
+          ${
+            rating
+              ? `<span class="badge">⭐ ${rating.toFixed(1)} 分</span>`
+              : ""
+          }
+          ${
+            total
+              ? `<span class="badge">🤝 ${total} 則評論</span>`
+              : ""
+          }
+        </div>
+        ${
+          phone
+            ? `<div>電話：<a href="tel:${phone}">${phone}</a></div>`
+            : ""
+        }
+        ${
+          website
+            ? `<div>官方網站：<a href="${website}" target="_blank">前往官網</a></div>`
+            : ""
+        }
+        ${
+          mapsLink
+            ? `<div>🗺 <a href="${mapsLink}" target="_blank">用 Google Maps 導航</a></div>`
+            : ""
+        }
+        <div class="small">覺得不對味？按「再抽一次」試試看 😋</div>
+      `;
+    }
+
+    startRandomBtn.addEventListener("click", pickRandomRestaurant);
+    reshuffleBtn.addEventListener("click", pickRandomRestaurant);
   </script>
 </body>
 </html>
