@@ -1,397 +1,749 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>吃什麼轉盤</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>吃什麼轉盤</title>
+  <style>
+    :root {
+      --primary: #00bfa5;
+      --primary-dark: #009688;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #64748b;
+      --border-subtle: #e2e8f0;
+    }
 
-<style>
-  body {
-    font-family: "Segoe UI", Arial, sans-serif;
-    padding: 20px;
-    background: #fafafa;
-  }
+    * {
+      box-sizing: border-box;
+    }
 
-  h1 {
-    margin-bottom: 10px;
-  }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+      background: radial-gradient(circle at top, #e0f7fa 0, #e2f3ff 40%, #f8fafc 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      min-height: 100vh;
+      padding: 12px;
+    }
 
-  button {
-    padding: 10px 14px;
-    border: none;
-    background: #4a8ef0;
-    color: #fff;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-  }
-  button:disabled {
-    background: #ccc;
-  }
+    .app {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffffee;
+      border-radius: 24px;
+      box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.22),
+        0 0 0 1px rgba(148, 163, 184, 0.25);
+      display: flex;
+      flex-direction: column;
+      padding: 12px 14px 8px;
+    }
 
-  .status {
-    margin: 10px 0;
-    color: #444;
-  }
+    .app-header {
+      padding: 4px 4px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
 
-  .categories {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0;
-  }
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
 
-  .cat-item {
-    background: #fff;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    font-size: 13px;
-    display: flex;
-    gap: 6px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .cat-item input {
-    margin: 0;
-  }
+    .app-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
 
-  .random-controls {
-    margin-top: 10px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
+    .app-subtitle {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
 
-  .restaurant-card {
-    background: #fff;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    margin-bottom: 16px;
-  }
+    .chip {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+      color: #0f766e;
+    }
 
-  .restaurant-name {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 4px;
-  }
+    .radius-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
 
-  .badge-row {
-    margin: 6px 0;
-    display: flex;
-    gap: 6px;
-  }
+    .radius-row label {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
 
-  .badge {
-    background: #f0f0f0;
-    padding: 3px 6px;
-    border-radius: 6px;
-    font-size: 12px;
-  }
+    #radiusInput {
+      width: 72px;
+      padding: 6px 8px;
+      font-size: 13px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      outline: none;
+    }
 
-  iframe {
-    margin-top: 6px;
-  }
-</style>
+    #radiusInput:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(0, 191, 165, 0.3);
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 191, 165, 0.45);
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: 0 2px 6px rgba(0, 191, 165, 0.4);
+    }
+
+    .btn.secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+      box-shadow: none;
+    }
+
+    .btn.secondary:active {
+      box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4);
+    }
+
+    .status {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-sub);
+      min-height: 18px;
+    }
+
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 2px 4px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      border: 1px solid var(--border-subtle);
+      padding: 10px 12px;
+    }
+
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .cat-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .cat-item input {
+      margin: 0;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
+
+    .results-empty {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+
+    .card-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .restaurant-card {
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 10px 10px 8px;
+      box-shadow: 0 8px 18px rgba(148, 163, 184, 0.25);
+      transform: translateY(16px) scale(0.96);
+      opacity: 0;
+      animation: card-pop 0.28s ease-out forwards;
+    }
+
+    .restaurant-card:nth-child(1) {
+      animation-delay: 0.0s;
+    }
+    .restaurant-card:nth-child(2) {
+      animation-delay: 0.08s;
+    }
+    .restaurant-card:nth-child(3) {
+      animation-delay: 0.16s;
+    }
+
+    @keyframes card-pop {
+      from {
+        transform: translateY(16px) scale(0.96);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .restaurant-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .restaurant-addr {
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0f172a;
+    }
+
+    .open-now {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .open-now.ok {
+      color: #0f766e;
+    }
+
+    .open-now.closed {
+      color: #b91c1c;
+    }
+
+    .map-link {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .map-link a {
+      color: var(--primary-dark);
+      text-decoration: none;
+    }
+
+    .map-link a:hover {
+      text-decoration: underline;
+    }
+
+    iframe {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      width: 100%;
+      height: 140px;
+    }
+
+    .hint-footer {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .app-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 6px 4px 2px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-left label {
+      font-size: 11px;
+      color: var(--text-sub);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 6px;
+    }
+
+    .footer-right .btn {
+      padding-inline: 12px;
+    }
+
+    @media (max-width: 400px) {
+      .radius-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .app {
+        padding-inline: 10px;
+      }
+    }
+  </style>
 </head>
-
 <body>
-
-<h1>今天要吃什麼？🎲</h1>
-
-<button id="detectBtn">偵測我的位置並搜尋餐廳</button>
-
-<div class="status" id="statusMsg"></div>
-
-<h3>分類（五大分類）</h3>
-<div id="categoryList" class="categories"></div>
-
-<div class="random-controls">
-  <button id="startRandomBtn" disabled>開始抽籤 🎲</button>
-  <button id="reshuffleBtn" disabled>再抽一次 🔄</button>
-
-  <!-- ⭐ 新增：只顯示 4.0 分以上 -->
-  <label style="font-size:12px;display:flex;align-items:center;gap:4px;">
-    <input type="checkbox" id="ratingFilter" />
-    只顯示 ⭐4.0 分以上
-  </label>
-</div>
-
-<h3>抽籤結果</h3>
-<div id="restaurantResult"></div>
-
-<script>
-// ====== 全域變數 ======
-let userLocation = null;
-let allPlaces = [];
-let categoryMap = {};
-
-const detectBtn = document.getElementById("detectBtn");
-const statusMsg = document.getElementById("statusMsg");
-const categoryList = document.getElementById("categoryList");
-const startRandomBtn = document.getElementById("startRandomBtn");
-const reshuffleBtn = document.getElementById("reshuffleBtn");
-const restaurantResult = document.getElementById("restaurantResult");
-
-// ====== 五大分類（含台灣飲料關鍵字） ======
-const CATEGORY_RULES = [
-  {
-    key: "早餐",
-    label: "早餐",
-    keywords: ["早餐","早午餐","brunch","豆漿","永和豆漿","蛋餅","美而美","吐司","三明治","漢堡","早點"]
-  },
-  {
-    key: "午餐",
-    label: "午餐",
-    keywords: ["便當","簡餐","定食","午餐","快餐","炒飯","炒麵","牛肉麵","麵館","自助餐","小吃","飯館"]
-  },
-  {
-    key: "晚餐",
-    label: "晚餐",
-    keywords: ["晚餐","燒肉","火鍋","鍋物","居酒屋","燒烤","串燒","鐵板燒","熱炒","餐酒館","宵夜"]
-  },
-  {
-    key: "下午茶",
-    label: "下午茶",
-    keywords: ["下午茶","甜點","蛋糕","鬆餅","司康","甜品","冰淇淋","冰品","patisserie","dessert"]
-  },
-  {
-    key: "飲料",
-    label: "飲料",
-    keywords: [
-      "飲料","手搖","手搖飲","奶茶","milk tea","tea","果汁","juice","smoothie",
-      "五十嵐","50嵐","可不可","coco","清心","迷客夏","麥吉","茶湯會","圓石",
-      "再睡5分鐘","先喝道","茶的魔手","一芳","大苑子","麻古","珍煮丹","春陽茶事","老虎堂","貢茶",
-      "黑糖","鮮茶","烏弄","honey","萊爾富"
-    ]
-  }
-];
-
-// ====== 分類判斷 ======
-function classifyPlace(place) {
-  const name = (place.name || "") + " " + (place.vicinity || "") + " " + (place.formatted_address || "");
-  const lower = name.toLowerCase();
-  const matchedLabels = new Set();
-
-  CATEGORY_RULES.forEach(rule => {
-    const hit = rule.keywords.some(kw => lower.includes(kw.toLowerCase()));
-    if (hit) matchedLabels.add(rule.label);
-  });
-
-  // Fallback：Place types
-  if (matchedLabels.size === 0 && Array.isArray(place.types)) {
-    const t = place.types.map(x => x.toLowerCase());
-    if (t.includes("cafe")) matchedLabels.add("下午茶");
-    if (t.includes("cafe")) matchedLabels.add("飲料");
-    if (t.includes("bar")) matchedLabels.add("飲料");
-    if (t.includes("bakery")) matchedLabels.add("下午茶");
-    if (t.includes("meal_takeaway") || t.includes("meal_delivery")) {
-      matchedLabels.add("午餐");
-      matchedLabels.add("晚餐");
-    }
-    if (t.includes("restaurant") && matchedLabels.size === 0) {
-      matchedLabels.add("午餐");
-      matchedLabels.add("晚餐");
-    }
-  }
-
-  if (matchedLabels.size === 0) {
-    matchedLabels.add("午餐");
-    matchedLabels.add("晚餐");
-  }
-
-  return Array.from(matchedLabels);
-}
-
-// ====== 建立分類清單 ======
-function buildCategoriesFromPlaces() {
-  categoryMap = {};
-  CATEGORY_RULES.forEach(rule => categoryMap[rule.label] = []);
-
-  allPlaces.forEach(place => {
-    classifyPlace(place).forEach(label => {
-      categoryMap[label].push(place);
-    });
-  });
-
-  renderCategoryCheckboxes();
-}
-
-function renderCategoryCheckboxes() {
-  categoryList.innerHTML = "";
-  CATEGORY_RULES.forEach(rule => {
-    const label = rule.label;
-    const id = "cat-" + label;
-
-    const wrapper = document.createElement("label");
-    wrapper.className = "cat-item";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = label;
-    checkbox.id = id;
-
-    if (categoryMap[label].length === 0) checkbox.disabled = true;
-
-    const span = document.createElement("span");
-    span.textContent = `${label} (${categoryMap[label].length})`;
-
-    wrapper.appendChild(checkbox);
-    wrapper.appendChild(span);
-    categoryList.appendChild(wrapper);
-  });
-
-  startRandomBtn.disabled = false;
-  reshuffleBtn.disabled = false;
-}
-
-// ====== 取得候選 ======
-function getFilteredPlacesBySelectedCategories() {
-  const checked = Array.from(categoryList.querySelectorAll("input[type=checkbox]:checked"))
-      .map(c => c.value);
-
-  let candidates = [];
-
-  if (checked.length === 0) {
-    candidates = [...allPlaces];
-  } else {
-    const set = new Set();
-    checked.forEach(label => {
-      (categoryMap[label] || []).forEach(p => set.add(p));
-    });
-    candidates = Array.from(set);
-  }
-
-  // ⭐ 加上评分过滤
-  const ratingFilter = document.getElementById("ratingFilter");
-  if (ratingFilter.checked) {
-    candidates = candidates.filter(p => p.rating >= 4.0);
-  }
-
-  return candidates;
-}
-
-// ====== 抽籤：抽 3 間 ======
-function pickRandomRestaurant() {
-  if (allPlaces.length === 0) {
-    statusMsg.textContent = "請先搜尋餐廳！";
-    return;
-  }
-
-  const candidates = getFilteredPlacesBySelectedCategories();
-  if (candidates.length === 0) {
-    restaurantResult.textContent = "找不到符合條件的餐廳，換別的分類看看？";
-    return;
-  }
-
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
-  const selected = shuffled.slice(0, Math.min(3, shuffled.length));
-
-  renderRestaurantList(selected);
-}
-
-// ====== 顯示 3 間餐廳（含小地圖） ======
-function renderRestaurantList(places) {
-  restaurantResult.innerHTML = places.map(place => {
-    const name = place.name || "未命名餐廳";
-    const addr = place.vicinity || place.formatted_address || "沒有提供地址";
-    const rating = place.rating;
-    const total = place.user_ratings_total;
-
-    const lat = place.geometry?.location?.lat();
-    const lng = place.geometry?.location?.lng();
-
-    const mapsLink = lat && lng
-      ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
-      : null;
-
-    const embedMap = lat && lng
-      ? `
-        <iframe
-          width="100%"
-          height="150"
-          style="border-radius:12px;border:1px solid #ddd;margin-top:6px;"
-          loading="lazy"
-          src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&q=${lat},${lng}">
-        </iframe>`
-      : "";
-
-    return `
-      <div class="restaurant-card">
-        <div class="restaurant-name">${name}</div>
-        <div>${addr}</div>
-
-        <div class="badge-row">
-          ${rating ? `<span class="badge">⭐ ${rating.toFixed(1)}</span>` : ""}
-          ${total ? `<span class="badge">💬 ${total} 則評論</span>` : ""}
+  <div class="app">
+    <header class="app-header">
+      <div class="title-row">
+        <div>
+          <div class="app-title">吃什麼轉盤 🍽️</div>
+          <div class="app-subtitle">定位 → 選分類 → 抽出 3 間給你選</div>
         </div>
-
-        ${mapsLink ? `<div>🗺 <a href="${mapsLink}" target="_blank">導航到這裡</a></div>` : ""}
-        ${embedMap}
+        <div class="chip">附近餐廳幫你決定</div>
       </div>
-    `;
-  }).join("") + `<div style="font-size:12px;color:#555;">不喜歡？按右邊的「再抽一次」🎲</div>`;
-}
+      <div class="radius-row">
+        <label>
+          搜尋範圍：
+          <input id="radiusInput" type="number" min="1" max="15" value="5" /> 公里內
+        </label>
+        <button id="detectBtn" class="btn">📍 定位並搜尋</button>
+      </div>
+      <div id="statusMsg" class="status"></div>
+    </header>
 
-// ====== Google Maps Nearby 搜尋 ======
-function searchNearbyRestaurants(radiusKm) {
-  if (!userLocation) return;
+    <main class="app-main">
+      <section class="card">
+        <div class="card-title-row">
+          <div class="card-title">選擇餐廳類型</div>
+          <div class="card-subtitle">可複選，不選則從全部裡面抽</div>
+        </div>
+        <div id="categoryList" class="categories"></div>
+      </section>
 
-  const service = new google.maps.places.PlacesService(document.createElement("div"));
+      <section class="card">
+        <div class="card-title-row">
+          <div class="card-title">抽到的選項（最多 3 間）</div>
+          <div class="card-subtitle">卡牌抽籤，每次結果都不一樣</div>
+        </div>
+        <div id="restaurantResult" class="results-empty">
+          還沒有結果，先定位並搜尋附近餐廳，再按下方「開始抽籤」試試 🎲
+        </div>
+      </section>
+    </main>
 
-  const request = {
-    location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
-    radius: radiusKm * 1000,
-    type: "restaurant"
-  };
+    <footer class="app-footer">
+      <div class="footer-left">
+        <label>
+          <input type="checkbox" id="ratingFilter" />
+          只顯示 ⭐4.0 分以上
+        </label>
+      </div>
+      <div class="footer-right">
+        <button id="startRandomBtn" class="btn secondary" disabled>開始抽籤 🎯</button>
+        <button id="reshuffleBtn" class="btn" disabled>再抽一次 🔄</button>
+      </div>
+    </footer>
+  </div>
 
-  allPlaces = [];
-  categoryList.innerHTML = "";
-  restaurantResult.innerHTML = "";
-  startRandomBtn.disabled = true;
-  reshuffleBtn.disabled = true;
+  <script>
+    let userLocation = null;
+    let allPlaces = [];
+    let categoryMap = {};
+    let placesService = null;
 
-  statusMsg.textContent = `正在搜尋 ${radiusKm} 公里內的餐廳…`;
+    const detectBtn = document.getElementById("detectBtn");
+    const radiusInput = document.getElementById("radiusInput");
+    const statusMsg = document.getElementById("statusMsg");
+    const categoryList = document.getElementById("categoryList");
+    const startRandomBtn = document.getElementById("startRandomBtn");
+    const reshuffleBtn = document.getElementById("reshuffleBtn");
+    const restaurantResult = document.getElementById("restaurantResult");
+    const ratingFilter = document.getElementById("ratingFilter");
 
-  service.nearbySearch(request, (results, status) => {
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-      statusMsg.textContent = "搜尋失敗，可能附近沒有餐廳。";
-      return;
+    const CATEGORY_RULES = [
+      {
+        key: "早餐",
+        label: "早餐",
+        keywords: ["早餐","早午餐","brunch","豆漿","永和豆漿","蛋餅","美而美","吐司","三明治","漢堡","早點"]
+      },
+      {
+        key: "午餐",
+        label: "午餐",
+        keywords: ["便當","簡餐","定食","午餐","快餐","炒飯","炒麵","牛肉麵","麵館","自助餐","小吃","飯館"]
+      },
+      {
+        key: "晚餐",
+        label: "晚餐",
+        keywords: ["晚餐","燒肉","火鍋","鍋物","居酒屋","燒烤","串燒","鐵板燒","熱炒","餐酒館","宵夜"]
+      },
+      {
+        key: "下午茶",
+        label: "下午茶",
+        keywords: ["下午茶","甜點","蛋糕","鬆餅","司康","甜品","冰淇淋","冰品","patisserie","dessert"]
+      },
+      {
+        key: "飲料",
+        label: "飲料",
+        keywords: [
+          "飲料","手搖","手搖飲","奶茶","milk tea","tea","果汁","juice","smoothie",
+          "五十嵐","50嵐","可不可","coco","清心","迷客夏","麥吉","茶湯會","圓石",
+          "再睡5分鐘","先喝道","茶的魔手","一芳","大苑子","麻古","珍煮丹","春陽茶事","老虎堂","貢茶",
+          "黑糖","鮮茶","烏弄","honey","萊爾富"
+        ]
+      }
+    ];
+
+    function classifyPlace(place) {
+      const text =
+        (place.name || "") + " " +
+        (place.vicinity || "") + " " +
+        (place.formatted_address || "");
+      const lower = text.toLowerCase();
+      const matched = new Set();
+
+      CATEGORY_RULES.forEach(rule => {
+        const hit = rule.keywords.some(kw => lower.includes(kw.toLowerCase()));
+        if (hit) matched.add(rule.label);
+      });
+
+      if (matched.size === 0 && Array.isArray(place.types)) {
+        const t = place.types.map(x => x.toLowerCase());
+        if (t.includes("cafe")) {
+          matched.add("下午茶");
+          matched.add("飲料");
+        }
+        if (t.includes("bar")) matched.add("飲料");
+        if (t.includes("bakery")) matched.add("下午茶");
+        if (t.includes("meal_takeaway") || t.includes("meal_delivery")) {
+          matched.add("午餐");
+          matched.add("晚餐");
+        }
+        if (t.includes("restaurant") && matched.size === 0) {
+          matched.add("午餐");
+          matched.add("晚餐");
+        }
+      }
+
+      if (matched.size === 0) {
+        matched.add("午餐");
+        matched.add("晚餐");
+      }
+
+      return Array.from(matched);
     }
 
-    allPlaces = results;
-    statusMsg.textContent = `找到 ${results.length} 家餐廳，請選擇分類。`;
-    buildCategoriesFromPlaces();
-  });
-}
+    function buildCategoriesFromPlaces() {
+      categoryMap = {};
+      CATEGORY_RULES.forEach(rule => {
+        categoryMap[rule.label] = [];
+      });
 
-// ====== 偵測位置 ======
-detectBtn.addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    alert("你的瀏覽器不支援定位");
-    return;
-  }
+      allPlaces.forEach(place => {
+        const labels = classifyPlace(place);
+        labels.forEach(label => {
+          categoryMap[label].push(place);
+        });
+      });
 
-  statusMsg.textContent = "正在定位…";
+      renderCategoryCheckboxes();
+    }
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    userLocation = { lat: latitude, lng: longitude };
-    statusMsg.textContent = "已取得位置，開始搜尋餐廳…";
-    searchNearbyRestaurants(5); // 預設搜尋 5 公里
-  }, () => {
-    statusMsg.textContent = "無法取得定位";
-  });
-});
+    function renderCategoryCheckboxes() {
+      categoryList.innerHTML = "";
+      CATEGORY_RULES.forEach(rule => {
+        const label = rule.label;
+        const count = (categoryMap[label] || []).length;
+        const id = "cat-" + label;
 
-startRandomBtn.addEventListener("click", pickRandomRestaurant);
-reshuffleBtn.addEventListener("click", pickRandomRestaurant);
-</script>
+        const wrapper = document.createElement("label");
+        wrapper.className = "cat-item";
 
-<!-- ⭐ Google Maps JS -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&libraries=places"></script>
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = label;
+        checkbox.id = id;
+        if (count === 0) checkbox.disabled = true;
 
+        const span = document.createElement("span");
+        span.textContent = `${label} (${count})`;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(span);
+        categoryList.appendChild(wrapper);
+      });
+
+      startRandomBtn.disabled = false;
+      reshuffleBtn.disabled = false;
+    }
+
+    function getFilteredPlacesBySelectedCategories() {
+      const checked = Array.from(
+        categoryList.querySelectorAll("input[type=checkbox]:checked")
+      ).map(c => c.value);
+
+      let candidates = [];
+      if (checked.length === 0) {
+        candidates = [...allPlaces];
+      } else {
+        const set = new Set();
+        checked.forEach(label => {
+          (categoryMap[label] || []).forEach(p => set.add(p));
+        });
+        candidates = Array.from(set);
+      }
+
+      if (ratingFilter.checked) {
+        candidates = candidates.filter(p => p.rating >= 4.0);
+      }
+
+      return candidates;
+    }
+
+    function pickRandomRestaurant() {
+      if (allPlaces.length === 0) {
+        statusMsg.textContent = "請先定位並搜尋附近餐廳。";
+        return;
+      }
+
+      const candidates = getFilteredPlacesBySelectedCategories();
+      if (candidates.length === 0) {
+        restaurantResult.textContent = "找不到符合條件的餐廳，換個分類或取消 4.0 篩選再試試。";
+        return;
+      }
+
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+      const selected = shuffled.slice(0, Math.min(3, shuffled.length));
+
+      renderRestaurantList(selected);
+    }
+
+    function renderRestaurantList(places) {
+      if (places.length === 0) {
+        restaurantResult.textContent = "找不到符合條件的餐廳。";
+        return;
+      }
+
+      const cardsHtml = places.map(place => {
+        const name = place.name || "未命名餐廳";
+        const addr = place.vicinity || place.formatted_address || "沒有提供地址";
+        const rating = place.rating;
+        const total = place.user_ratings_total;
+        const lat = place.geometry?.location?.lat();
+        const lng = place.geometry?.location?.lng();
+        const mapsLink = lat && lng
+          ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+          : null;
+
+        const cardId = `card-${place.place_id}`;
+        const openId = `open-${place.place_id}`;
+
+        const embedMap = lat && lng
+          ? `
+            <iframe
+              loading="lazy"
+              src="https://www.google.com/maps/embed/v1/place?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&q=${lat},${lng}">
+            </iframe>
+          `
+          : "";
+
+        return `
+          <div class="restaurant-card" id="${cardId}">
+            <div class="restaurant-name">${name}</div>
+            <div class="restaurant-addr">${addr}</div>
+            <div class="badge-row">
+              ${rating ? `<span class="badge">⭐ ${rating.toFixed(1)}</span>` : ""}
+              ${total ? `<span class="badge">💬 ${total} 則評論</span>` : ""}
+            </div>
+            <div class="open-now" id="${openId}">營業狀態載入中…</div>
+            ${mapsLink ? `<div class="map-link">🗺 <a href="${mapsLink}" target="_blank">導航到這裡</a></div>` : ""}
+            ${embedMap}
+          </div>
+        `;
+      }).join("");
+
+      restaurantResult.innerHTML = `<div class="card-stack">${cardsHtml}</div><div class="hint-footer">不喜歡這些？再按一次「再抽一次」換一組 🎲</div>`;
+
+      places.forEach(place => {
+        fetchPlaceOpeningHours(place);
+      });
+    }
+
+    function fetchPlaceOpeningHours(place) {
+      if (!placesService || !place.place_id) return;
+      const openEl = document.getElementById(`open-${place.place_id}`);
+      if (!openEl) return;
+
+      placesService.getDetails(
+        {
+          placeId: place.place_id,
+          fields: ["opening_hours"]
+        },
+        (detail, status) => {
+          if (status !== google.maps.places.PlacesServiceStatus.OK || !detail) {
+            openEl.textContent = "營業時間未提供";
+            return;
+          }
+          const oh = detail.opening_hours;
+          if (!oh) {
+            openEl.textContent = "營業時間未提供";
+            return;
+          }
+
+          let openNow = null;
+          if (typeof oh.isOpen === "function") {
+            try {
+              openNow = oh.isOpen();
+            } catch (e) {}
+          } else if (typeof oh.open_now === "boolean") {
+            openNow = oh.open_now;
+          }
+
+          if (openNow === true) {
+            openEl.textContent = "目前營業中 ✅";
+            openEl.classList.add("ok");
+          } else if (openNow === false) {
+            openEl.textContent = "目前未營業 ⛔";
+            openEl.classList.add("closed");
+          } else {
+            openEl.textContent = "營業時間未提供";
+          }
+        }
+      );
+    }
+
+    function searchNearbyRestaurants(radiusKm) {
+      if (!userLocation) return;
+      if (!placesService) {
+        placesService = new google.maps.places.PlacesService(
+          document.createElement("div")
+        );
+      }
+
+      const request = {
+        location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
+        radius: radiusKm * 1000,
+        type: "restaurant"
+      };
+
+      allPlaces = [];
+      categoryList.innerHTML = "";
+      restaurantResult.innerHTML = "正在搜尋附近餐廳…";
+      startRandomBtn.disabled = true;
+      reshuffleBtn.disabled = true;
+
+      statusMsg.textContent = `正在搜尋 ${radiusKm} 公里內的餐廳…`;
+
+      placesService.nearbySearch(request, (results, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
+          statusMsg.textContent = "搜尋失敗，可能附近沒有餐廳或超出 API 限制。";
+          restaurantResult.textContent = "沒有搜尋到餐廳，縮小範圍或換個地點試試。";
+          return;
+        }
+
+        allPlaces = results;
+        statusMsg.textContent = `找到 ${results.length} 家餐廳，請勾選想要的分類或直接抽籤。`;
+        buildCategoriesFromPlaces();
+        restaurantResult.innerHTML = "現在可以在下方按「開始抽籤」了 🎯";
+      });
+    }
+
+    detectBtn.addEventListener("click", () => {
+      const radiusKm = Number(radiusInput.value) || 5;
+      if (!navigator.geolocation) {
+        statusMsg.textContent = "你的瀏覽器不支援定位功能。";
+        return;
+      }
+
+      statusMsg.textContent = "正在取得你的位置…";
+
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          statusMsg.textContent = "已取得位置，開始搜尋附近餐廳…";
+          searchNearbyRestaurants(radiusKm);
+        },
+        err => {
+          console.error(err);
+          statusMsg.textContent = "無法取得定位，請確認有開啟定位權限。";
+        }
+      );
+    });
+
+    startRandomBtn.addEventListener("click", pickRandomRestaurant);
+    reshuffleBtn.addEventListener("click", pickRandomRestaurant);
+  </script>
+
+  <!-- ⚠ 把 YOUR_GOOGLE_MAPS_API_KEY 換成你的 Key（這裡與 iframe 內都要換） -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&libraries=places"></script>
 </body>
 </html>
