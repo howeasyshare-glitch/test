@@ -322,7 +322,7 @@
       <div class="title-row">
         <div>
           <div class="app-title">吃什麼轉盤 🍽️</div>
-          <div class="app-subtitle">先載入附近 10km 餐廳，再用距離 + 類型幫你篩</div>
+          <div class="app-subtitle">先載入附近 10km 餐廳，再用距離 + 類型幫你抽</div>
         </div>
         <div class="chip">附近餐廳幫你決定</div>
       </div>
@@ -340,7 +340,7 @@
       <section class="card">
         <div class="card-title-row">
           <div class="card-title">選擇餐廳類型</div>
-          <div class="card-subtitle">可複選；不選代表「全部都可以」</div>
+          <div class="card-subtitle" id="categorySubtitle">可複選；不選代表「全部都可以」</div>
         </div>
         <div id="categoryList" class="categories"></div>
       </section>
@@ -371,24 +371,24 @@
   </div>
 
   <script>
-    // --- 全域狀態 ---
     let userLocation = null;
-    let allPlaces = [];         // 全部抓到的餐廳（最多 10km，以前端距離再切）
-    let categoryMap = {};
+    let allPlaces = [];     // 全部 10km 內的餐廳
+    let categoryMap = {};   // 目前「距離範圍內」的分類結果
     let placesService = null;
 
-    const FETCH_RADIUS_KM = 10; // 後端實際抓資料的最大範圍（10km）
+    const FETCH_RADIUS_KM = 10;
 
     const detectBtn = document.getElementById("detectBtn");
     const radiusInput = document.getElementById("radiusInput");
     const statusMsg = document.getElementById("statusMsg");
     const categoryList = document.getElementById("categoryList");
+    const categorySubtitle = document.getElementById("categorySubtitle");
     const startRandomBtn = document.getElementById("startRandomBtn");
     const reshuffleBtn = document.getElementById("reshuffleBtn");
     const restaurantResult = document.getElementById("restaurantResult");
     const ratingFilter = document.getElementById("ratingFilter");
 
-    // --- 五大分類規則 ---
+    // 五大分類規則
     const CATEGORY_RULES = [
       {
         key: "早餐",
@@ -422,21 +422,21 @@
       }
     ];
 
-    // --- 工具：計算兩點距離（公尺） ---
+    // 計算兩點距離（公尺）
     function computeDistanceMeters(lat1, lng1, lat2, lng2) {
-      const R = 6371000; // 地球半徑（公尺）
+      const R = 6371000;
       const toRad = d => d * Math.PI / 180;
       const dLat = toRad(lat2 - lat1);
       const dLng = toRad(lng2 - lng1);
       const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLat / 2) ** 2 +
         Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        Math.sin(dLng / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
 
-    // --- 將 Place 分到五大類 ---
+    // 依店名/地址/types 做五大類分類
     function classifyPlace(place) {
       const text =
         (place.name || "") + " " +
@@ -476,13 +476,32 @@
       return Array.from(matched);
     }
 
-    function buildCategoriesFromPlaces() {
-      categoryMap = {};
-      CATEGORY_RULES.forEach(rule => {
-        categoryMap[rule.label] = [];
+    // 取得「目前距離設定」下的全部餐廳
+    function getPlacesWithinRadius() {
+      if (!allPlaces.length) return [];
+
+      let selectedRadiusKm = Number(radiusInput.value) || 5;
+      if (selectedRadiusKm < 0.5) selectedRadiusKm = 0.5;
+      if (selectedRadiusKm > FETCH_RADIUS_KM) selectedRadiusKm = FETCH_RADIUS_KM;
+
+      const maxDistMeters = selectedRadiusKm * 1000;
+
+      const places = allPlaces.filter(p => {
+        if (typeof p._distanceMeters !== "number") return false;
+        return p._distanceMeters <= maxDistMeters;
       });
 
-      allPlaces.forEach(place => {
+      categorySubtitle.textContent = `可複選；目前顯示 ${selectedRadiusKm.toFixed(1)} km 內餐廳`;
+
+      return places;
+    }
+
+    // 依「目前距離內的餐廳」建立分類統計
+    function buildCategoriesFromPlaces(places) {
+      categoryMap = {};
+      CATEGORY_RULES.forEach(rule => { categoryMap[rule.label] = []; });
+
+      places.forEach(place => {
         const labels = classifyPlace(place);
         labels.forEach(label => {
           categoryMap[label].push(place);
@@ -497,7 +516,6 @@
       CATEGORY_RULES.forEach(rule => {
         const label = rule.label;
         const count = (categoryMap[label] || []).length;
-        const id = "cat-" + label;
 
         const wrapper = document.createElement("label");
         wrapper.className = "cat-item";
@@ -505,7 +523,6 @@
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.value = label;
-        checkbox.id = id;
         if (count === 0) checkbox.disabled = true;
 
         const span = document.createElement("span");
@@ -520,69 +537,55 @@
       reshuffleBtn.disabled = false;
     }
 
-    // --- 依「距離 + 類別 + 評分」取得候選店家 ---
+    // 依「距離 + 分類 + 評分」取得候選
     function getFilteredPlacesBySelectedCategories() {
+      const base = getPlacesWithinRadius(); // 先看距離
       const checked = Array.from(
         categoryList.querySelectorAll("input[type=checkbox]:checked")
       ).map(c => c.value);
 
-      // 目前選擇的顯示半徑（km），限制在 0.5 ~ FETCH_RADIUS_KM
-      let selectedRadiusKm = Number(radiusInput.value) || 5;
-      if (selectedRadiusKm < 0.5) selectedRadiusKm = 0.5;
-      if (selectedRadiusKm > FETCH_RADIUS_KM) selectedRadiusKm = FETCH_RADIUS_KM;
-      const maxDistMeters = selectedRadiusKm * 1000;
-
-      let candidates = [];
-
+      let candidates;
       if (checked.length === 0) {
-        candidates = [...allPlaces];
+        candidates = [...base];
       } else {
         const set = new Set();
         checked.forEach(label => {
-          (categoryMap[label] || []).forEach(p => set.add(p));
+          (categoryMap[label] || []).forEach(p => {
+            if (base.includes(p)) set.add(p);
+          });
         });
         candidates = Array.from(set);
       }
 
-      // 先依距離篩一輪
-      candidates = candidates.filter(p => {
-        if (typeof p._distanceMeters !== "number") return false;
-        return p._distanceMeters <= maxDistMeters;
-      });
-
-      // 再套評分 4.0 過濾
       if (ratingFilter.checked) {
         candidates = candidates.filter(p => p.rating >= 4.0);
       }
 
-      // 最後依距離排序（最近在前）
       candidates.sort((a, b) => (a._distanceMeters || 0) - (b._distanceMeters || 0));
-
       return candidates;
     }
 
-    // --- 抽籤：從候選中抽最多 3 間 ---
+    // 抽卡：從候選中抽最多 3 間
     function pickRandomRestaurant() {
-      if (allPlaces.length === 0) {
+      if (!allPlaces.length) {
         statusMsg.textContent = "請先按「定位並載入」取得附近餐廳。";
         return;
       }
 
       const candidates = getFilteredPlacesBySelectedCategories();
-      if (candidates.length === 0) {
+      if (!candidates.length) {
         restaurantResult.textContent = "這個距離和條件下沒有符合的餐廳，試試放寬距離或取消 4.0 篩選。";
         return;
       }
 
       const shuffled = [...candidates].sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, Math.min(3, shuffled.length));
-
       renderRestaurantList(selected);
     }
 
-    // --- 顯示卡牌（含距離 / Open Now / 小地圖） ---
+    // 顯示卡牌
     function renderRestaurantList(places) {
-      if (places.length === 0) {
+      if (!places.length) {
         restaurantResult.textContent = "找不到符合條件的餐廳。";
         return;
       }
@@ -603,7 +606,6 @@
           ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
           : null;
 
-        const cardId = `card-${place.place_id}`;
         const openId = `open-${place.place_id}`;
 
         const embedMap = lat && lng
@@ -616,7 +618,7 @@
           : "";
 
         return `
-          <div class="restaurant-card" id="${cardId}">
+          <div class="restaurant-card">
             <div class="restaurant-name">${name}</div>
             <div class="restaurant-addr">${addr}</div>
             <div class="badge-row">
@@ -634,13 +636,10 @@
       restaurantResult.innerHTML =
         `<div class="card-stack">${cardsHtml}</div><div class="hint-footer">不喜歡這組？按「再抽一次」換一批 🎲</div>`;
 
-      // 再補上 Open Now 狀態
-      places.forEach(place => {
-        fetchPlaceOpeningHours(place);
-      });
+      places.forEach(place => fetchPlaceOpeningHours(place));
     }
 
-    // --- 用 Place Details 拿 Open Now 狀態 ---
+    // 撈 Place Details 的 Open Now
     function fetchPlaceOpeningHours(place) {
       if (!placesService || !place.place_id) return;
       const openEl = document.getElementById(`open-${place.place_id}`);
@@ -682,7 +681,7 @@
       );
     }
 
-    // --- 搜尋附近餐廳（一次抓 10km 內，並計算距離） ---
+    // 搜尋附近餐廳（固定抓 10km，距離之後再前端切）
     function searchNearbyRestaurants() {
       if (!userLocation) return;
       if (!placesService) {
@@ -709,7 +708,7 @@
 
       function handleResults(results, status, pagination) {
         if (status !== google.maps.places.PlacesServiceStatus.OK || !results) {
-          if (allPlaces.length === 0) {
+          if (!allPlaces.length) {
             statusMsg.textContent = "搜尋失敗，可能附近沒有餐廳或超出 API 限制。";
             restaurantResult.textContent = "沒有搜尋到餐廳，換個地點或稍後重試。";
           }
@@ -719,7 +718,6 @@
         allPlaces = allPlaces.concat(results);
 
         if (pagination && pagination.hasNextPage && allPlaces.length < MAX_RESULTS) {
-          // 再抓下一頁
           pagination.nextPage();
         } else {
           // 全部抓完，計算距離
@@ -741,7 +739,8 @@
           allPlaces.sort((a, b) => (a._distanceMeters || 0) - (b._distanceMeters || 0));
 
           statusMsg.textContent = `已載入 ${allPlaces.length} 家餐廳，現在可以用距離、類型與評分幫你抽籤。`;
-          buildCategoriesFromPlaces();
+          const current = getPlacesWithinRadius();
+          buildCategoriesFromPlaces(current);
           restaurantResult.innerHTML = "設定好距離與分類後，按「開始抽籤」來抽 3 間試試 🎯";
         }
       }
@@ -749,7 +748,7 @@
       placesService.nearbySearch(request, handleResults);
     }
 
-    // --- 事件綁定 ---
+    // 事件：定位並載入
     detectBtn.addEventListener("click", () => {
       if (!navigator.geolocation) {
         statusMsg.textContent = "你的瀏覽器不支援定位功能。";
@@ -772,6 +771,14 @@
           statusMsg.textContent = "無法取得定位，請確認有開啟定位權限。";
         }
       );
+    });
+
+    // 事件：變更距離時，重新計算「該距離內的分類」但不重打 API
+    radiusInput.addEventListener("change", () => {
+      if (!allPlaces.length) return;
+      const current = getPlacesWithinRadius();
+      buildCategoriesFromPlaces(current);
+      restaurantResult.textContent = "距離已更新，按「開始抽籤」或「再抽一次」看新結果 🎲";
     });
 
     startRandomBtn.addEventListener("click", pickRandomRestaurant);
