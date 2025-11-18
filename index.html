@@ -322,7 +322,7 @@
       <div class="title-row">
         <div>
           <div class="app-title">吃什麼轉盤 🍽️</div>
-          <div class="app-subtitle">先載入附近 10km 餐廳，再用距離 + 類型幫你抽</div>
+          <div class="app-subtitle">先載入附近 10km，再用距離 + 類型幫你抽</div>
         </div>
         <div class="chip">附近餐廳幫你決定</div>
       </div>
@@ -373,13 +373,15 @@
   <script>
     // ---- 全域狀態 / 常數 ----
     let userLocation = null;
-    let allPlaces = [];   // 全部 10km 內的餐廳
-    let categoryMap = {}; // 目前距離內、分類好的餐廳
+    let allPlaces = [];      // 全部 10km 內的餐廳（restaurant 為主）
+    let drinkPlaces = [];    // 使用 keyword「飲料 手搖 奶茶 咖啡」額外抓的飲料店
+    let drinkLoaded = false; // 飲料是否已經查過
+    let categoryMap = {};    // 目前距離內、分類好的餐廳
     let placesService = null;
 
     const FETCH_RADIUS_KM = 10; // 真正對 Google 搜尋的最大半徑（10km）
 
-    // 五大分類規則
+    // 五大分類規則（仍用在早餐/午餐/晚餐/下午茶，大部分飲料改用 keyword 搜）
     const CATEGORY_RULES = [
       {
         key: "早餐",
@@ -406,9 +408,10 @@
         label: "飲料",
         keywords: [
           "飲料","手搖","手搖飲","奶茶","milk tea","tea","果汁","juice","smoothie",
+          "星巴克","starbucks",
           "五十嵐","50嵐","可不可","coco","清心","迷客夏","麥吉","茶湯會","圓石",
           "再睡5分鐘","先喝道","茶的魔手","一芳","大苑子","麻古","珍煮丹","春陽茶事","老虎堂","貢茶",
-          "黑糖","鮮茶","烏弄","honey","萊爾富"
+          "黑糖","鮮茶","烏弄","honey"
         ]
       }
     ];
@@ -427,79 +430,128 @@
       return R * c;
     }
 
+    // 將一批 place 計算距離＆排序
+    function attachDistanceAndSort(list) {
+      if (!userLocation) return;
+      list.forEach(p => {
+        const lat = p.geometry?.location?.lat();
+        const lng = p.geometry?.location?.lng();
+        if (typeof lat === "number" && typeof lng === "number") {
+          p._distanceMeters = computeDistanceMeters(
+            userLocation.lat,
+            userLocation.lng,
+            lat,
+            lng
+          );
+        } else {
+          p._distanceMeters = Infinity;
+        }
+      });
+      list.sort((a, b) => (a._distanceMeters || 0) - (b._distanceMeters || 0));
+    }
+
+    // 將 allPlaces 與 drinkPlaces 合併（依 place_id 去重）
+    function mergePlacesWithinRadius(radiusKm, categorySubtitle) {
+      const maxDistMeters = Math.min(radiusKm, FETCH_RADIUS_KM) * 1000;
+
+      const pooled = [...allPlaces, ...drinkPlaces];
+      const byId = new Map();
+
+      pooled.forEach(p => {
+        if (!p.place_id) return;
+        if (typeof p._distanceMeters !== "number") return;
+        if (p._distanceMeters > maxDistMeters) return;
+        if (!byId.has(p.place_id)) {
+          byId.set(p.place_id, p);
+        }
+      });
+
+      if (categorySubtitle) {
+        categorySubtitle.textContent = `可複選；目前顯示 ${Math.min(radiusKm, FETCH_RADIUS_KM).toFixed(1)} km 內`;
+      }
+
+      return Array.from(byId.values());
+    }
+
     // 依店名/地址/types 做五大類分類
     function classifyPlace(place) {
+      const labels = new Set();
+
+      // 若是「飲料 keyword 搜尋」出來的，一定要包含「飲料」
+      if (place._fromDrinkSearch) {
+        labels.add("飲料");
+      }
+
       const text =
         (place.name || "") + " " +
         (place.vicinity || "") + " " +
         (place.formatted_address || "");
       const lower = text.toLowerCase();
-      const matched = new Set();
 
       CATEGORY_RULES.forEach(rule => {
-        const hit = rule.keywords.some(kw => lower.includes(kw.toLowerCase()));
-        if (hit) matched.add(rule.label);
+        // 飲料類：如果不是 _fromDrinkSearch，就用比較嚴格的字串判斷
+        if (rule.label === "飲料" && !place._fromDrinkSearch) {
+          const strongDrinkHit = rule.keywords.some(kw =>
+            lower.includes(kw.toLowerCase())
+          );
+          if (strongDrinkHit) labels.add("飲料");
+          return;
+        }
+
+        // 其他類照原本規則
+        if (rule.label !== "飲料") {
+          const hit = rule.keywords.some(kw =>
+            lower.includes(kw.toLowerCase())
+          );
+          if (hit) labels.add(rule.label);
+        }
       });
 
-      if (matched.size === 0 && Array.isArray(place.types)) {
+      // 若目前還沒分類成功，根據 types 略做補強
+      if (labels.size === 0 && Array.isArray(place.types)) {
         const t = place.types.map(x => x.toLowerCase());
         if (t.includes("cafe")) {
-          matched.add("下午茶");
-          matched.add("飲料");
+          labels.add("下午茶");
         }
-        if (t.includes("bar")) matched.add("飲料");
-        if (t.includes("bakery")) matched.add("下午茶");
+        if (t.includes("bakery")) labels.add("下午茶");
         if (t.includes("meal_takeaway") || t.includes("meal_delivery")) {
-          matched.add("午餐");
-          matched.add("晚餐");
+          labels.add("午餐");
+          labels.add("晚餐");
         }
-        if (t.includes("restaurant") && matched.size === 0) {
-          matched.add("午餐");
-          matched.add("晚餐");
+        if (t.includes("restaurant") && labels.size === 0) {
+          labels.add("午餐");
+          labels.add("晚餐");
         }
       }
 
-      if (matched.size === 0) {
-        matched.add("午餐");
-        matched.add("晚餐");
+      // 仍然沒有分類，就當作一般主食餐廳
+      if (labels.size === 0) {
+        labels.add("午餐");
+        labels.add("晚餐");
       }
 
-      return Array.from(matched);
+      return Array.from(labels);
     }
 
-    // 取得「目前距離設定」下的全部餐廳
-    function getPlacesWithinRadius(radiusInput, categorySubtitle) {
-      if (!allPlaces.length) return [];
+    // 根據「目前距離 + allPlaces + drinkPlaces」建立 categoryMap
+    function rebuildCategoryMap(radiusInput, categorySubtitle) {
+      let radiusKm = Number(radiusInput.value) || 5;
+      if (radiusKm < 0.5) radiusKm = 0.5;
+      if (radiusKm > FETCH_RADIUS_KM) radiusKm = FETCH_RADIUS_KM;
 
-      let selectedRadiusKm = Number(radiusInput.value) || 5;
-      if (selectedRadiusKm < 0.5) selectedRadiusKm = 0.5;
-      if (selectedRadiusKm > FETCH_RADIUS_KM) selectedRadiusKm = FETCH_RADIUS_KM;
-
-      const maxDistMeters = selectedRadiusKm * 1000;
-
-      const places = allPlaces.filter(p => {
-        if (typeof p._distanceMeters !== "number") return false;
-        return p._distanceMeters <= maxDistMeters;
-      });
-
-      if (categorySubtitle) {
-        categorySubtitle.textContent = `可複選；目前顯示 ${selectedRadiusKm.toFixed(1)} km 內餐廳`;
-      }
-
-      return places;
-    }
-
-    // 依「目前距離內的餐廳」建立分類統計
-    function buildCategoriesFromPlaces(places) {
+      const places = mergePlacesWithinRadius(radiusKm, categorySubtitle);
       categoryMap = {};
       CATEGORY_RULES.forEach(rule => { categoryMap[rule.label] = []; });
 
       places.forEach(place => {
         const labels = classifyPlace(place);
         labels.forEach(label => {
+          if (!categoryMap[label]) categoryMap[label] = [];
           categoryMap[label].push(place);
         });
       });
+
+      return places; // 回傳這次距離內的全部 place 給抽籤用
     }
 
     function renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn) {
@@ -528,22 +580,64 @@
       reshuffleBtn.disabled = false;
     }
 
+    // 飲料專用搜尋（用 keyword，模擬你在 Google Map 打「飲料」）
+    function fetchDrinkPlacesIfNeeded(statusMsg, callback) {
+      if (drinkLoaded || !userLocation) {
+        callback && callback();
+        return;
+      }
+      if (!placesService) {
+        placesService = new google.maps.places.PlacesService(
+          document.createElement("div")
+        );
+      }
+
+      statusMsg.textContent = "額外載入附近飲料店中…";
+
+      const request = {
+        location: new google.maps.LatLng(userLocation.lat, userLocation.lng),
+        radius: FETCH_RADIUS_KM * 1000,
+        keyword: "飲料 手搖 奶茶 咖啡",
+        type: "restaurant"
+      };
+
+      drinkPlaces = [];
+
+      function handleDrink(results, status, pagination) {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          results.forEach(p => { p._fromDrinkSearch = true; });
+          drinkPlaces = drinkPlaces.concat(results);
+          if (pagination && pagination.hasNextPage && drinkPlaces.length < 60) {
+            pagination.nextPage();
+            return;
+          }
+        }
+        // 計算距離＆排序
+        attachDistanceAndSort(drinkPlaces);
+        drinkLoaded = true;
+        statusMsg.textContent = "飲料店已載入完成。";
+        callback && callback();
+      }
+
+      placesService.nearbySearch(request, handleDrink);
+    }
+
     // 依「距離 + 分類 + 評分」取得候選
     function getFilteredPlacesBySelectedCategories(radiusInput, ratingFilter, categoryList, categorySubtitle) {
-      const base = getPlacesWithinRadius(radiusInput, categorySubtitle); // 先看距離
+      // 先根據目前距離重建 categoryMap＆得到該距離內所有 place
+      const allWithinRadius = rebuildCategoryMap(radiusInput, categorySubtitle);
+
       const checked = Array.from(
         categoryList.querySelectorAll("input[type=checkbox]:checked")
       ).map(c => c.value);
 
       let candidates;
       if (checked.length === 0) {
-        candidates = [...base];
+        candidates = [...allWithinRadius];
       } else {
         const set = new Set();
         checked.forEach(label => {
-          (categoryMap[label] || []).forEach(p => {
-            if (base.includes(p)) set.add(p);
-          });
+          (categoryMap[label] || []).forEach(p => set.add(p));
         });
         candidates = Array.from(set);
       }
@@ -616,7 +710,10 @@
 
         return `
           <div class="restaurant-card">
-            <div class="restaurant-name">${name}</div>
+            <div class="restaurant-name">
+              ${name}
+              ${place._fromDrinkSearch ? '<span style="font-size:11px;color:#0f766e;">　🧋 飲料</span>' : ""}
+            </div>
             <div class="restaurant-addr">${addr}</div>
             <div class="badge-row">
               ${distKm ? `<span class="badge">📍 約 ${distKm} km</span>` : ""}
@@ -678,7 +775,7 @@
       );
     }
 
-    // 搜尋附近餐廳（固定抓 10km，距離之後再前端切）
+    // 搜尋附近餐廳（固定抓 10km，後面距離再前端切）
     function searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, ratingFilter) {
       if (!userLocation) return;
       if (!placesService) {
@@ -694,6 +791,8 @@
       };
 
       allPlaces = [];
+      drinkPlaces = [];
+      drinkLoaded = false;
       categoryMap = {};
       categoryList.innerHTML = "";
       restaurantResult.innerHTML = "正在搜尋附近餐廳…";
@@ -718,37 +817,24 @@
         if (pagination && pagination.hasNextPage && allPlaces.length < MAX_RESULTS) {
           pagination.nextPage();
         } else {
-          // 全部抓完，計算距離
-          allPlaces.forEach(p => {
-            const lat = p.geometry?.location?.lat();
-            const lng = p.geometry?.location?.lng();
-            if (typeof lat === "number" && typeof lng === "number") {
-              p._distanceMeters = computeDistanceMeters(
-                userLocation.lat,
-                userLocation.lng,
-                lat,
-                lng
-              );
-            } else {
-              p._distanceMeters = Infinity;
-            }
+          // 全部抓完，計算距離＆排序
+          attachDistanceAndSort(allPlaces);
+
+          statusMsg.textContent = `已載入 ${allPlaces.length} 家餐廳，額外載入飲料店…`;
+
+          // 再額外抓飲料店，然後一起建立分類
+          fetchDrinkPlacesIfNeeded(statusMsg, () => {
+            const current = rebuildCategoryMap(radiusInput, categorySubtitle);
+            renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn);
+            restaurantResult.innerHTML = "設定好距離與分類後，按「開始抽籤」來抽 3 間試試 🎯";
           });
-
-          allPlaces.sort((a, b) => (a._distanceMeters || 0) - (b._distanceMeters || 0));
-
-          statusMsg.textContent = `已載入 ${allPlaces.length} 家餐廳，現在可以用距離、類型與評分幫你抽籤。`;
-
-          const current = getPlacesWithinRadius(radiusInput, categorySubtitle);
-          buildCategoriesFromPlaces(current);
-          renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn);
-          restaurantResult.innerHTML = "設定好距離與分類後，按「開始抽籤」來抽 3 間試試 🎯";
         }
       }
 
       placesService.nearbySearch(request, handleResults);
     }
 
-    // ---- DOMContentLoaded：等整個 DOM 準備好再綁事件，避免定位被誤擋 ----
+    // ---- DOMContentLoaded：等整個 DOM 準備好再綁事件 ----
     document.addEventListener("DOMContentLoaded", () => {
       const detectBtn = document.getElementById("detectBtn");
       const radiusInput = document.getElementById("radiusInput");
@@ -797,8 +883,7 @@
       // 調整距離時，只前端重新計算「這個距離內的分類與數量」
       radiusInput.addEventListener("change", () => {
         if (!allPlaces.length) return;
-        const current = getPlacesWithinRadius(radiusInput, categorySubtitle);
-        buildCategoriesFromPlaces(current);
+        rebuildCategoryMap(radiusInput, categorySubtitle);
         renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn);
         restaurantResult.textContent = "距離已更新，按「開始抽籤」或「再抽一次」看新結果 🎲";
       });
