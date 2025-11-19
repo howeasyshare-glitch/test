@@ -54,6 +54,19 @@
       margin-bottom: 8px;
     }
 
+    .title-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
     .app-title {
       font-size: 18px;
       font-weight: 700;
@@ -71,6 +84,12 @@
       background: #ecfeff;
       border: 1px solid #a5f3fc;
       color: #0f766e;
+    }
+
+    .version-chip {
+      background: #e2e8f0;
+      border-color: #cbd5f5;
+      color: #475569;
     }
 
     .radius-row {
@@ -128,6 +147,12 @@
 
     .btn.secondary:active {
       box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4);
+    }
+
+    .btn.tiny {
+      padding: 4px 10px;
+      font-size: 11px;
+      box-shadow: none;
     }
 
     .status {
@@ -307,6 +332,54 @@
 
     .footer-right .btn { padding-inline: 12px; }
 
+    /* Debug list styles */
+    .debug-list {
+      margin-top: 6px;
+      font-size: 11px;
+      max-height: 220px;
+      overflow-y: auto;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      padding: 6px 8px;
+    }
+
+    .debug-item {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 4px 0;
+    }
+
+    .debug-item:last-child {
+      border-bottom: none;
+    }
+
+    .debug-line-1 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .debug-name {
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .debug-meta {
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    .debug-tags {
+      font-size: 10px;
+      color: #0f766e;
+      margin-top: 2px;
+    }
+
+    .debug-empty {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
     @media (max-width: 400px) {
       .radius-row {
         flex-direction: column;
@@ -320,11 +393,14 @@
   <div class="app">
     <header class="app-header">
       <div class="title-row">
-        <div>
+        <div class="title-left">
           <div class="app-title">吃什麼轉盤 🍽️</div>
           <div class="app-subtitle">先載入附近 10km，再用距離 + 類型幫你抽</div>
         </div>
-        <div class="chip">附近餐廳幫你決定</div>
+        <div class="title-right">
+          <div class="chip">附近餐廳幫你決定</div>
+          <div class="chip version-chip">v0.4.0-debug-list</div>
+        </div>
       </div>
       <div class="radius-row">
         <label>
@@ -339,8 +415,12 @@
     <main class="app-main">
       <section class="card">
         <div class="card-title-row">
-          <div class="card-title">選擇餐廳類型</div>
-          <div class="card-subtitle" id="categorySubtitle">可複選；不選代表「全部都可以」</div>
+          <div>
+            <div class="card-title">選擇餐廳類型</div>
+            <div class="card-subtitle" id="categorySubtitle">
+              可複選；不選代表「全部都可以」
+            </div>
+          </div>
         </div>
         <div id="categoryList" class="categories"></div>
       </section>
@@ -353,6 +433,20 @@
         <div id="restaurantResult" class="results-empty">
           還沒有結果，先按上方「定位並載入」，再按下方「開始抽籤」 🎲
         </div>
+      </section>
+
+      <!-- 新增：資料總覽（測試用） -->
+      <section class="card">
+        <div class="card-title-row">
+          <div>
+            <div class="card-title">目前資料總覽（測試用）</div>
+            <div class="card-subtitle">
+              顯示目前距離內所有餐廳、來源與分類結果，方便你調整規則。
+            </div>
+          </div>
+          <button id="toggleDebugBtn" class="btn secondary tiny">顯示 / 隱藏</button>
+        </div>
+        <div id="debugList" class="debug-list"></div>
       </section>
     </main>
 
@@ -371,6 +465,9 @@
   </div>
 
   <script>
+    // ---- 版本資訊 ----
+    const APP_VERSION = "v0.4.0-debug-list";
+
     // ---- 全域狀態 / 常數 ----
     let userLocation = null;
     let allPlaces = [];      // 全部 10km 內的餐廳（restaurant 為主）
@@ -378,10 +475,11 @@
     let drinkLoaded = false; // 飲料是否已經查過
     let categoryMap = {};    // 目前距離內、分類好的餐廳
     let placesService = null;
+    let lastPlacesWithinRadius = []; // 目前距離內的全部 place（給 debug list 用）
 
     const FETCH_RADIUS_KM = 10; // 真正對 Google 搜尋的最大半徑（10km）
 
-    // 五大分類規則（仍用在早餐/午餐/晚餐/下午茶，大部分飲料改用 keyword 搜）
+    // 五大分類規則
     const CATEGORY_RULES = [
       {
         key: "早餐",
@@ -407,7 +505,9 @@
         key: "飲料",
         label: "飲料",
         keywords: [
-          "飲料","手搖","手搖飲","奶茶","milk tea","tea","果汁","juice","smoothie",
+          "飲料","手搖","手搖飲","奶茶","紅茶","綠茶","烏龍茶","果茶",
+          "milk tea","tea","coffee","cafe","latte","espresso",
+          "果汁","juice","smoothie","冰沙",
           "星巴克","starbucks",
           "五十嵐","50嵐","可不可","coco","清心","迷客夏","麥吉","茶湯會","圓石",
           "再睡5分鐘","先喝道","茶的魔手","一芳","大苑子","麻古","珍煮丹","春陽茶事","老虎堂","貢茶",
@@ -450,7 +550,7 @@
       list.sort((a, b) => (a._distanceMeters || 0) - (b._distanceMeters || 0));
     }
 
-    // 將 allPlaces 與 drinkPlaces 合併（依 place_id 去重）
+    // 將 allPlaces 與 drinkPlaces 合併（依 place_id 去重），再做距離篩
     function mergePlacesWithinRadius(radiusKm, categorySubtitle) {
       const maxDistMeters = Math.min(radiusKm, FETCH_RADIUS_KM) * 1000;
 
@@ -489,7 +589,7 @@
       const lower = text.toLowerCase();
 
       CATEGORY_RULES.forEach(rule => {
-        // 飲料類：如果不是 _fromDrinkSearch，就用比較嚴格的字串判斷
+        // 飲料類：如果不是 _fromDrinkSearch，就用字串判斷（比較寬鬆）
         if (rule.label === "飲料" && !place._fromDrinkSearch) {
           const strongDrinkHit = rule.keywords.some(kw =>
             lower.includes(kw.toLowerCase())
@@ -533,18 +633,21 @@
       return Array.from(labels);
     }
 
-    // 根據「目前距離 + allPlaces + drinkPlaces」建立 categoryMap
+    // 根據「目前距離 + allPlaces + drinkPlaces」建立 categoryMap & 紀錄 lastPlacesWithinRadius
     function rebuildCategoryMap(radiusInput, categorySubtitle) {
       let radiusKm = Number(radiusInput.value) || 5;
       if (radiusKm < 0.5) radiusKm = 0.5;
       if (radiusKm > FETCH_RADIUS_KM) radiusKm = FETCH_RADIUS_KM;
 
       const places = mergePlacesWithinRadius(radiusKm, categorySubtitle);
+      lastPlacesWithinRadius = places;
+
       categoryMap = {};
       CATEGORY_RULES.forEach(rule => { categoryMap[rule.label] = []; });
 
       places.forEach(place => {
         const labels = classifyPlace(place);
+        place._labels = labels; // 給 debug list 用
         labels.forEach(label => {
           if (!categoryMap[label]) categoryMap[label] = [];
           categoryMap[label].push(place);
@@ -580,6 +683,36 @@
       reshuffleBtn.disabled = false;
     }
 
+    // Debug：渲染目前距離內所有資料與分類結果
+    function renderDebugList(debugListEl) {
+      if (!lastPlacesWithinRadius.length) {
+        debugListEl.innerHTML = '<div class="debug-empty">尚未載入資料，或目前距離內沒有符合的餐廳。</div>';
+        return;
+      }
+
+      const rows = lastPlacesWithinRadius.map((p, idx) => {
+        const name = p.name || "未命名餐廳";
+        const distKm = typeof p._distanceMeters === "number"
+          ? (p._distanceMeters / 1000).toFixed(2)
+          : "—";
+        const labels = Array.isArray(p._labels) && p._labels.length
+          ? p._labels.join(" / ")
+          : "（未分類）";
+        const fromDrink = p._fromDrinkSearch ? "飲料API" : "一般餐廳";
+        return `
+          <div class="debug-item">
+            <div class="debug-line-1">
+              <div class="debug-name">${idx + 1}. ${name}</div>
+              <div class="debug-meta">${fromDrink}｜${distKm} km</div>
+            </div>
+            <div class="debug-tags">分類：${labels}</div>
+          </div>
+        `;
+      }).join("");
+
+      debugListEl.innerHTML = rows;
+    }
+
     // 飲料專用搜尋（用 keyword，模擬你在 Google Map 打「飲料」）
     function fetchDrinkPlacesIfNeeded(statusMsg, callback) {
       if (drinkLoaded || !userLocation) {
@@ -607,15 +740,17 @@
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           results.forEach(p => { p._fromDrinkSearch = true; });
           drinkPlaces = drinkPlaces.concat(results);
-          if (pagination && pagination.hasNextPage && drinkPlaces.length < 60) {
+          if (pagination && pagination.hasNextPage && drinkPlaces.length < 80) {
             pagination.nextPage();
             return;
           }
         }
-        // 計算距離＆排序
+
+        // 計算距離＆排序（不再做嚴格過濾，回到上一版感覺）
         attachDistanceAndSort(drinkPlaces);
+
         drinkLoaded = true;
-        statusMsg.textContent = "飲料店已載入完成。";
+        statusMsg.textContent = `飲料店已載入完成（${drinkPlaces.length} 間）。`;
         callback && callback();
       }
 
@@ -624,7 +759,6 @@
 
     // 依「距離 + 分類 + 評分」取得候選
     function getFilteredPlacesBySelectedCategories(radiusInput, ratingFilter, categoryList, categorySubtitle) {
-      // 先根據目前距離重建 categoryMap＆得到該距離內所有 place
       const allWithinRadius = rebuildCategoryMap(radiusInput, categorySubtitle);
 
       const checked = Array.from(
@@ -712,7 +846,7 @@
           <div class="restaurant-card">
             <div class="restaurant-name">
               ${name}
-              ${place._fromDrinkSearch ? '<span style="font-size:11px;color:#0f766e;">　🧋 飲料</span>' : ""}
+              ${place._fromDrinkSearch ? '<span style="font-size:11px;color:#0f766e;">　🧋 飲料API</span>' : ""}
             </div>
             <div class="restaurant-addr">${addr}</div>
             <div class="badge-row">
@@ -776,7 +910,7 @@
     }
 
     // 搜尋附近餐廳（固定抓 10km，後面距離再前端切）
-    function searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, ratingFilter) {
+    function searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, ratingFilter, debugListEl) {
       if (!userLocation) return;
       if (!placesService) {
         placesService = new google.maps.places.PlacesService(
@@ -794,7 +928,9 @@
       drinkPlaces = [];
       drinkLoaded = false;
       categoryMap = {};
+      lastPlacesWithinRadius = [];
       categoryList.innerHTML = "";
+      debugListEl.innerHTML = '<div class="debug-empty">資料載入中…</div>';
       restaurantResult.innerHTML = "正在搜尋附近餐廳…";
       startRandomBtn.disabled = true;
       reshuffleBtn.disabled = true;
@@ -824,8 +960,9 @@
 
           // 再額外抓飲料店，然後一起建立分類
           fetchDrinkPlacesIfNeeded(statusMsg, () => {
-            const current = rebuildCategoryMap(radiusInput, categorySubtitle);
+            rebuildCategoryMap(radiusInput, categorySubtitle);
             renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn);
+            renderDebugList(debugListEl);
             restaurantResult.innerHTML = "設定好距離與分類後，按「開始抽籤」來抽 3 間試試 🎯";
           });
         }
@@ -845,6 +982,20 @@
       const reshuffleBtn = document.getElementById("reshuffleBtn");
       const restaurantResult = document.getElementById("restaurantResult");
       const ratingFilter = document.getElementById("ratingFilter");
+      const debugListEl = document.getElementById("debugList");
+      const toggleDebugBtn = document.getElementById("toggleDebugBtn");
+
+      // 初始顯示版本（其實 header 已經有，但這邊保留做記錄）
+      console.log("吃什麼轉盤版本：", APP_VERSION);
+
+      // Debug list 預設隱藏內容（但容器在）
+      let debugVisible = false;
+      debugListEl.style.display = "none";
+      toggleDebugBtn.addEventListener("click", () => {
+        debugVisible = !debugVisible;
+        debugListEl.style.display = debugVisible ? "block" : "none";
+        toggleDebugBtn.textContent = debugVisible ? "隱藏列表" : "顯示 / 隱藏";
+      });
 
       // 定位並載入
       detectBtn.addEventListener("click", () => {
@@ -870,7 +1021,8 @@
               startRandomBtn,
               reshuffleBtn,
               radiusInput,
-              ratingFilter
+              ratingFilter,
+              debugListEl
             );
           },
           err => {
@@ -885,6 +1037,7 @@
         if (!allPlaces.length) return;
         rebuildCategoryMap(radiusInput, categorySubtitle);
         renderCategoryCheckboxes(categoryList, startRandomBtn, reshuffleBtn);
+        renderDebugList(debugListEl);
         restaurantResult.textContent = "距離已更新，按「開始抽籤」或「再抽一次」看新結果 🎲";
       });
 
