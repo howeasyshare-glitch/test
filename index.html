@@ -408,7 +408,7 @@
         </div>
         <div class="title-right">
           <div class="chip">解決選擇困難</div>
-          <div class="chip version-chip">省錢版 v1.5</div>
+          <div class="chip version-chip">省錢版 v1.8</div>
         </div>
       </div>
       <div class="radius-row">
@@ -474,41 +474,30 @@
 
   <script>
     
-    // 修改後的定位按鈕：失敗時自動使用備用位置
+    // ---- 修改版：跳過定位，直接使用預設座標測試 ----
       detectBtn.addEventListener("click", () => {
-        statusMsg.textContent = "正在定位...";
         
-        // 定位成功執行的函式
-        const onLocationFound = (lat, lng, isFake = false) => {
-          userLocation = { lat, lng };
-          const msg = isFake 
-            ? "⚠️ 定位失敗，已切換到「台北車站」作為測試起點。" 
-            : "定位成功！開始搜尋...";
-          statusMsg.textContent = msg;
-          
-          // 呼叫原本的搜尋函式
-          searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, debugListEl);
+        // 1. 設定一個預設座標 (這裡設定為台北車站，你可以改成你家附近的座標)
+        // 台北車站: 25.047908, 121.517315
+        // 台中車站: 24.137114, 120.686876
+        // 高雄車站: 22.639761, 120.302583
+        const defaultLat = 25.047908;
+        const defaultLng = 121.517315;
+
+        // 2. 顯示訊息
+        statusMsg.textContent = "⚠️ 跳過定位權限檢查，使用預設座標 (台北車站) 進行測試...";
+        
+        // 3. 強制寫入位置
+        userLocation = {
+          lat: defaultLat,
+          lng: defaultLng
         };
 
-        if (!navigator.geolocation) {
-          // 瀏覽器不支援，直接用預設地點 (台北車站)
-          onLocationFound(24.6950741, 121.7604828, true);
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            // 真的定位成功
-            onLocationFound(pos.coords.latitude, pos.coords.longitude, false);
-          }, 
-          (err) => {
-            // 定位失敗，自動啟用備案
-            console.warn("定位失敗，使用備案。", err);
-            // 這裡是台北車站座標，你可以改成你家附近的座標方便測試
-            onLocationFound(24.6950741, 121.7604828, true); 
-          },
-          { timeout: 5000 } // 5秒抓不到就放棄，轉用備案
-        );
+        // 4. 0.5秒後開始搜尋 (模擬定位延遲)
+        setTimeout(() => {
+          statusMsg.textContent = "座標設定完成，開始搜尋附近餐廳...";
+          searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, debugListEl);
+        }, 500);
       });
     
     // ---- 設定與全域變數 ----
