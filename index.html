@@ -473,6 +473,44 @@
   </div>
 
   <script>
+    
+    // 修改後的定位按鈕：失敗時自動使用備用位置
+      detectBtn.addEventListener("click", () => {
+        statusMsg.textContent = "正在定位...";
+        
+        // 定位成功執行的函式
+        const onLocationFound = (lat, lng, isFake = false) => {
+          userLocation = { lat, lng };
+          const msg = isFake 
+            ? "⚠️ 定位失敗，已切換到「台北車站」作為測試起點。" 
+            : "定位成功！開始搜尋...";
+          statusMsg.textContent = msg;
+          
+          // 呼叫原本的搜尋函式
+          searchNearbyRestaurants(statusMsg, categoryList, restaurantResult, categorySubtitle, startRandomBtn, reshuffleBtn, radiusInput, debugListEl);
+        };
+
+        if (!navigator.geolocation) {
+          // 瀏覽器不支援，直接用預設地點 (台北車站)
+          onLocationFound(24.6950741, 121.7604828, true);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            // 真的定位成功
+            onLocationFound(pos.coords.latitude, pos.coords.longitude, false);
+          }, 
+          (err) => {
+            // 定位失敗，自動啟用備案
+            console.warn("定位失敗，使用備案。", err);
+            // 這裡是台北車站座標，你可以改成你家附近的座標方便測試
+            onLocationFound(24.6950741, 121.7604828, true); 
+          },
+          { timeout: 5000 } // 5秒抓不到就放棄，轉用備案
+        );
+      });
+    
     // ---- 設定與全域變數 ----
     // 省錢策略：使用兩組關鍵字，且不自動翻頁 (每點一次消耗 2 個 API Request)
     const SEARCH_QUERIES = [
