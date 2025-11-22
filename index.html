@@ -3,16 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>吃什麼轉盤 v0.6.0</title>
+  <title>吃什麼轉盤 v0.7.0</title>
   <style>
     :root {
-      --primary: #ffb7d5; /* 奶霜粉系主色 */
-      --primary-dark: #e08db0;
-      --bg: #fff7fb;
-      --card-bg: #ffffff;
-      --text-main: #4a4a4a;
-      --text-sub: #8b8b8b;
-      --border-subtle: #f2dce6;
+      --bg: #050816;
+      --bg-elevated: #0b1020;
+      --bg-card: #111827;
+      --bg-soft: #1f2937;
+      --accent: #f472b6;     /* 粉色 */
+      --accent-strong: #fb7185; /* 珊瑚粉 */
+      --accent-soft: #4f46e5;   /* 靛藍 */
+      --text-main: #e5e7eb;
+      --text-sub: #9ca3af;
+      --border-subtle: #1f2933;
+      --danger: #fb7185;
+      --radius-lg: 22px;
     }
 
     * {
@@ -21,8 +26,12 @@
 
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial;
-      background: radial-gradient(circle at top, #ffeef7 0, #fff7fb 45%, #ffffff 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, #4f46e5 0, transparent 45%),
+        radial-gradient(circle at bottom right, #ec4899 0, transparent 45%),
+        #020617;
       display: flex;
       justify-content: center;
       padding: 16px;
@@ -32,40 +41,55 @@
     .app {
       width: 100%;
       max-width: 480px;
-      background: #ffffffec;
-      border-radius: 24px;
+      background: linear-gradient(145deg, #020617cc, #020617f2);
+      border-radius: 32px;
       box-shadow:
-        0 14px 30px rgba(255, 182, 210, 0.35),
-        0 0 0 1px rgba(252, 231, 243, 0.9);
-      padding: 18px 16px 16px;
+        0 24px 60px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(148, 163, 184, 0.35);
+      padding: 16px 14px 12px;
+      display: flex;
+      flex-direction: column;
+      min-height: 80vh;
     }
 
     .title-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
 
     .app-title {
       font-size: 20px;
       font-weight: 700;
-      color: var(--primary-dark);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-title span.logo-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0%, #f9a8d4 0, #f97316 60%, #ec4899 100%);
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.8);
     }
 
     .app-subtitle {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-sub);
       margin-top: 2px;
     }
 
     .version-chip {
-      background: #ffe9f2;
-      border: 1px solid #ffcbe1;
+      background: radial-gradient(circle at 0 0, #4f46e5, #1e293b);
+      border: 1px solid #6b21a8;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 11px;
-      color: #b95880;
+      color: #e5e7eb;
+      box-shadow: 0 0 12px rgba(129, 140, 248, 0.7);
     }
 
     .radius-row {
@@ -79,47 +103,60 @@
     .radius-row label {
       font-size: 13px;
       color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #020617;
+      border-radius: 999px;
+      padding: 4px 10px;
+      border: 1px solid #111827;
     }
 
     input[type=number] {
-      padding: 6px 8px;
+      padding: 5px 8px;
       border-radius: 999px;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid #111827;
       font-size: 13px;
       width: 70px;
       outline: none;
+      background: #020617;
+      color: var(--text-main);
     }
 
     input[type=number]:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px rgba(255, 183, 213, 0.5);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.6);
     }
 
     .btn {
-      background: linear-gradient(135deg, #ffb7d5, #ffc6de);
       border: none;
       padding: 8px 14px;
       border-radius: 999px;
-      color: #fff;
       font-size: 13px;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 165, 195, 0.45);
       display: inline-flex;
       align-items: center;
       gap: 6px;
       white-space: nowrap;
-      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+      background-image: radial-gradient(circle at 30% 0%, #f9a8d4, #fb7185);
+      color: #f9fafb;
+      box-shadow:
+        0 6px 20px rgba(248, 113, 113, 0.6),
+        0 0 0 1px rgba(248, 250, 252, 0.08);
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out,
+        filter 0.08s ease-out;
     }
 
     .btn:active {
-      transform: translateY(1px) scale(0.98);
-      box-shadow: 0 2px 6px rgba(255, 165, 195, 0.4);
+      transform: translateY(1px) scale(0.97);
+      box-shadow: 0 3px 10px rgba(248, 113, 113, 0.5);
+      filter: brightness(0.95);
     }
 
     .btn.secondary {
-      background: #ffe9f2;
-      color: #b95880;
-      box-shadow: none;
+      background-image: linear-gradient(135deg, #111827, #020617);
+      color: #e5e7eb;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.8);
     }
 
     .status {
@@ -131,14 +168,15 @@
 
     .card {
       margin-top: 12px;
-      background: var(--card-bg);
-      border-radius: 18px;
+      background: linear-gradient(145deg, #020617, #020617f2);
+      border-radius: 20px;
       padding: 12px 12px 10px;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.75);
     }
 
     .card-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       margin-bottom: 6px;
       display: flex;
@@ -159,8 +197,8 @@
     }
 
     .cat-item {
-      background: #fff0f6;
-      border: 1px solid #ffd9e8;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.4);
       border-radius: 999px;
       padding: 5px 10px;
       font-size: 13px;
@@ -168,10 +206,15 @@
       gap: 6px;
       align-items: center;
       cursor: pointer;
+      color: #e5e7eb;
     }
 
     .cat-item input {
       margin: 0;
+    }
+
+    .cat-item:hover {
+      border-color: var(--accent);
     }
 
     /* --- 抽卡滑條（iOS 風格） --- */
@@ -184,9 +227,9 @@
       width: 80%;
       -webkit-appearance: none;
       appearance: none;
-      height: 6px;
-      border-radius: 4px;
-      background: #ffd9e8;
+      height: 5px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #4f46e5, #ec4899);
       outline: none;
     }
 
@@ -196,42 +239,44 @@
       height: 22px;
       width: 22px;
       border-radius: 50%;
-      background: #ffffff;
-      border: 3px solid var(--primary);
+      background: #020617;
+      border: 3px solid #f472b6;
       cursor: pointer;
-      box-shadow: 0 3px 6px rgba(255, 165, 195, 0.4);
+      box-shadow: 0 3px 6px rgba(236, 72, 153, 0.7);
     }
 
     #cardCountRange::-moz-range-thumb {
       height: 20px;
       width: 20px;
       border-radius: 50%;
-      background: #ffffff;
-      border: 3px solid var(--primary);
+      background: #020617;
+      border: 3px solid #f472b6;
       cursor: pointer;
-      box-shadow: 0 3px 6px rgba(255, 165, 195, 0.4);
+      box-shadow: 0 3px 6px rgba(236, 72, 153, 0.7);
     }
 
     #selectedCardCountLabel {
       font-size: 13px;
       margin-top: 6px;
-      color: var(--primary-dark);
+      color: var(--text-main);
     }
 
     /* 抽出的卡片 */
     .restaurant-card {
       margin-bottom: 10px;
-      padding: 10px;
-      border: 1px solid #ffd9e8;
-      border-radius: 14px;
-      background: #fff;
-      box-shadow: 0 6px 14px rgba(255, 182, 210, 0.18);
+      padding: 10px 10px 8px;
+      border-radius: 18px;
+      background: radial-gradient(circle at 0 0, #111827, #020617);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow:
+        0 12px 24px rgba(15, 23, 42, 0.85),
+        0 0 0 1px rgba(15, 23, 42, 0.7);
       animation: card-pop 0.25s ease-out;
     }
 
     @keyframes card-pop {
       from {
-        transform: translateY(10px) scale(0.97);
+        transform: translateY(12px) scale(0.97);
         opacity: 0;
       }
       to {
@@ -243,20 +288,33 @@
     .restaurant-name {
       font-size: 15px;
       font-weight: 600;
-      color: #b95880;
+      color: #e5e7eb;
+    }
+
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(248, 113, 113, 0.6);
+      color: #fecaca;
+      margin-left: 6px;
     }
 
     .restaurant-meta {
-      font-size: 13px;
-      color: #555;
+      font-size: 12px;
+      color: var(--text-sub);
       margin-top: 4px;
     }
 
     .restaurant-link a {
       display: inline-block;
       margin-top: 6px;
-      font-size: 13px;
-      color: #ff7aa5;
+      font-size: 12px;
+      color: #f9a8d4;
       text-decoration: none;
     }
 
@@ -264,12 +322,14 @@
       text-decoration: underline;
     }
 
-    /* --- 統一顯示一張總地圖 --- */
-    #singleMapContainer iframe {
+    /* --- 多點 Google Map --- */
+    #map {
       width: 100%;
-      height: 200px;
-      border-radius: 14px;
-      border: 1px solid #ffd9e8;
+      height: 220px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      overflow: hidden;
+      background: #020617;
       margin-top: 8px;
     }
 
@@ -303,14 +363,17 @@
   <div class="app">
     <div class="title-row">
       <div>
-        <div class="app-title">吃什麼轉盤 🍰</div>
+        <div class="app-title">
+          <span class="logo-dot"></span> 吃什麼轉盤
+        </div>
         <div class="app-subtitle">選類型 → 選距離 → 抽 1～3 張卡幫你決定</div>
       </div>
-      <div class="version-chip">v0.6.0</div>
+      <div class="version-chip">v0.7.0</div>
     </div>
 
     <div class="radius-row">
-      <label>距離
+      <label>
+        距離
         <input type="number" id="radiusInput" value="5" min="1" max="10" />
         公里內
       </label>
@@ -349,10 +412,11 @@
     <div class="card">
       <div class="card-title">
         <span>地圖顯示</span>
-        <span class="card-subtitle">只顯示第一家抽到的餐廳位置</span>
+        <span class="card-subtitle">地圖上會顯示本次抽到的所有店家</span>
       </div>
       <div id="singleMapContainer">
         <div id="singleMapContainer-empty">尚未有結果，抽到餐廳後會顯示地圖。</div>
+        <div id="map" style="display:none;"></div>
       </div>
     </div>
 
@@ -362,15 +426,15 @@
     </div>
   </div>
 
-  <!-- 請把 YOUR_GOOGLE_MAPS_API_KEY 換成你的金鑰 -->
+  <!-- 把 YOUR_GOOGLE_MAPS_API_KEY 換成你的 Key -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAzah5t1zIXY-Yg05uZKFYtVmlT4Pe0ZUQ&libraries=places,geometry"></script>
 
   <script>
-    // v0.6.0 JS
+    // v0.7.0 JS — 深色 UI + 多點地圖
 
     let userLocation = null;
-    let allPlaces = [];      // 主餐廳
-    let drinkPlaces = null;  // 飲料搜尋結果（cache）
+    let allPlaces = [];
+    let drinkPlaces = null;
     const FETCH_RADIUS_KM = 10;
     const MAX_RESULTS = 60;
 
@@ -382,10 +446,13 @@
     const categoryList = document.getElementById("categoryList");
     const restaurantResult = document.getElementById("restaurantResult");
     const singleMapContainer = document.getElementById("singleMapContainer");
+    const mapDiv = document.getElementById("map");
     const cardCountRange = document.getElementById("cardCountRange");
     const selectedCardCountLabel = document.getElementById("selectedCardCountLabel");
 
-    // 初始化滑條文字
+    let map = null;
+    let mapMarkers = [];
+
     cardCountRange.addEventListener("input", () => {
       selectedCardCountLabel.textContent = `抽 ${cardCountRange.value} 張`;
     });
@@ -397,8 +464,6 @@
       });
       startRandomBtn.addEventListener("click", () => pickRandomRestaurant());
       reshuffleBtn.addEventListener("click", () => pickRandomRestaurant());
-
-      // 建立類別 checkbox
       buildCategoryCheckboxes();
     });
 
@@ -467,7 +532,6 @@
         if (pagination && pagination.hasNextPage && allPlaces.length < MAX_RESULTS) {
           setTimeout(() => pagination.nextPage(), 350);
         } else {
-          // 計算距離
           attachDistance(allPlaces);
           statusMsg.textContent = `已載入 ${allPlaces.length} 家餐廳，選好類型後即可抽籤。`;
           startRandomBtn.disabled = false;
@@ -485,7 +549,7 @@
             origin,
             p.geometry.location
           );
-          p._dist = distMeters / 1000; // km
+          p._dist = distMeters / 1000;
         } catch (e) {
           p._dist = Infinity;
         }
@@ -525,29 +589,27 @@
       });
     }
 
-    // 回傳「這間店屬於哪些類型」
     function classifyPlaceLabels(place) {
-      const text = (place.name || "") + " " +
-                   (place.vicinity || "") + " " +
-                   (place.formatted_address || "");
+      const text =
+        (place.name || "") +
+        " " +
+        (place.vicinity || "") +
+        " " +
+        (place.formatted_address || "");
       const labels = [];
 
-      // 早餐關鍵字
       if (/早餐|早午餐|brunch|豆漿|蛋餅|吐司|三明治|美而美|早點/i.test(text)) {
         labels.push("早餐");
       }
 
-      // 下午茶關鍵字
       if (/下午茶|甜點|蛋糕|鬆餅|司康|冰淇淋|冰品|dessert/i.test(text)) {
         labels.push("下午茶");
       }
 
-      // 飲料 / 咖啡關鍵字
       if (/飲料|手搖|手搖飲|奶茶|紅茶|綠茶|茶坊|cafe|coffee|咖啡|果汁|smoothie|冰沙/i.test(text)) {
         labels.push("飲料");
       }
 
-      // 如果完全沒判斷出來，就當作主餐
       if (labels.length === 0) {
         labels.push("午餐", "晚餐");
       }
@@ -567,6 +629,7 @@
 
       if (!selectedCats.length) {
         restaurantResult.textContent = "請至少選擇 1 種餐廳類型。";
+        clearMap();
         return;
       }
 
@@ -575,22 +638,19 @@
       const radiusKm = Number(radiusInput.value) || 5;
       const nonDrinkCats = selectedCats.filter(c => c !== "飲料");
 
-      // 主餐廳根據 selectedCats 過濾
       within.forEach(p => {
         const labels = classifyPlaceLabels(p);
-        // 若選了非飲料類別，需至少有交集
         if (nonDrinkCats.length > 0) {
           if (!labels.some(l => nonDrinkCats.includes(l))) return;
+        } else {
+          // 只有飲料類時，主餐暫時不加入
+          return;
         }
-        // 若沒選非飲料類別（只有飲料），這些主餐就先不加
-        if (nonDrinkCats.length === 0) return;
-
         if (!poolMap.has(p.place_id)) {
           poolMap.set(p.place_id, p);
         }
       });
 
-      // 飲料類：額外用 keyword 抓
       if (selectedCats.includes("飲料")) {
         const drinks = await fetchDrinkPlacesIfNeeded();
         const filteredDrinks = drinks.filter(p => (p._dist ?? Infinity) <= radiusKm);
@@ -601,7 +661,6 @@
           }
         });
 
-        // 也把主餐中被判定成「飲料」的咖啡店納入
         within.forEach(p => {
           const labels = classifyPlaceLabels(p);
           if (labels.includes("飲料") && !poolMap.has(p.place_id)) {
@@ -614,12 +673,12 @@
       const pool = Array.from(poolMap.values());
 
       if (!pool.length) {
-        restaurantResult.textContent = "這個距離與條件下暫時找不到店家，試著放寬距離看看 🍽️";
-        singleMapContainer.innerHTML = '<div id="singleMapContainer-empty">尚未有結果，抽到餐廳後會顯示地圖。</div>';
+        restaurantResult.textContent =
+          "這個距離與條件下暫時找不到店家，試著放寬距離看看 🍽️";
+        clearMap();
         return;
       }
 
-      // 先照距離排序，再隨機打亂一點點
       pool.sort((a, b) => (a._dist ?? Infinity) - (b._dist ?? Infinity));
       pool.sort(() => Math.random() - 0.5);
 
@@ -628,17 +687,24 @@
       const selected = pool.slice(0, finalCount);
 
       renderCards(selected);
-      renderSingleMap(selected[0]);
+      renderMapForPlaces(selected);
     }
 
     function renderCards(list) {
-      restaurantResult.innerHTML = list.map(p => {
-        const dist = (p._dist ?? 0).toFixed(2);
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${p.place_id || ""}`;
-        const drinkTag = p._isDrink ? "　🧋 飲料" : "";
-        return `
+      restaurantResult.innerHTML = list
+        .map(p => {
+          const dist = (p._dist ?? 0).toFixed(2);
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            p.name
+          )}&query_place_id=${p.place_id || ""}`;
+          const drinkTag = p._isDrink
+            ? '<span class="tag-pill">🧋 飲料</span>'
+            : "";
+          return `
           <div class="restaurant-card">
-            <div class="restaurant-name">${p.name || "未命名餐廳"}${drinkTag}</div>
+            <div class="restaurant-name">
+              ${p.name || "未命名餐廳"} ${drinkTag}
+            </div>
             <div class="restaurant-meta">
               距離：約 ${dist} km
             </div>
@@ -647,23 +713,95 @@
             </div>
           </div>
         `;
-      }).join("");
+        })
+        .join("");
     }
 
-    function renderSingleMap(place) {
-      if (!place || !place.geometry || !place.geometry.location) {
-        singleMapContainer.innerHTML = '<div id="singleMapContainer-empty">無法取得地圖位置。</div>';
+    function ensureMap() {
+      if (!map) {
+        map = new google.maps.Map(mapDiv, {
+          center: userLocation
+            ? { lat: userLocation.lat, lng: userLocation.lng }
+            : { lat: 25.033, lng: 121.5654 },
+          zoom: 15,
+          disableDefaultUI: true,
+          styles: [
+            { elementType: "geometry", stylers: [{ color: "#0b1120" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#e5e7eb" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#020617" }] },
+            {
+              featureType: "poi",
+              elementType: "geometry",
+              stylers: [{ color: "#020617" }]
+            },
+            {
+              featureType: "poi.park",
+              elementType: "geometry",
+              stylers: [{ color: "#022c22" }]
+            },
+            {
+              featureType: "road",
+              elementType: "geometry",
+              stylers: [{ color: "#111827" }]
+            },
+            {
+              featureType: "water",
+              elementType: "geometry",
+              stylers: [{ color: "#0b1120" }]
+            }
+          ]
+        });
+      }
+    }
+
+    function clearMap() {
+      if (!mapMarkers.length) {
+        mapDiv.style.display = "none";
+        document.getElementById("singleMapContainer-empty").style.display =
+          "block";
         return;
       }
-      const lat = place.geometry.location.lat();
-      const lng = place.geometry.location.lng();
-      singleMapContainer.innerHTML = `
-        <iframe
-          src="https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade">
-        </iframe>
-      `;
+      mapMarkers.forEach(m => m.setMap(null));
+      mapMarkers = [];
+      mapDiv.style.display = "none";
+      document.getElementById("singleMapContainer-empty").style.display =
+        "block";
+    }
+
+    function renderMapForPlaces(list) {
+      if (!list.length) {
+        clearMap();
+        return;
+      }
+      ensureMap();
+
+      // 清掉舊 marker
+      mapMarkers.forEach(m => m.setMap(null));
+      mapMarkers = [];
+
+      const bounds = new google.maps.LatLngBounds();
+
+      list.forEach(p => {
+        if (!p.geometry || !p.geometry.location) return;
+        const loc = p.geometry.location;
+        const marker = new google.maps.Marker({
+          position: loc,
+          map,
+          title: p.name || ""
+        });
+        mapMarkers.push(marker);
+        bounds.extend(loc);
+      });
+
+      if (!mapMarkers.length) {
+        clearMap();
+        return;
+      }
+
+      document.getElementById("singleMapContainer-empty").style.display =
+        "none";
+      mapDiv.style.display = "block";
+      map.fitBounds(bounds);
     }
   </script>
 </body>
